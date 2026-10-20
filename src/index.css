@@ -8,8 +8,12 @@
   font-style: normal;
   font-display: swap;
   font-weight: 100 900;
-  src: url("../node_modules/@fontsource-variable/geist/files/geist-latin-ext-wght-normal.woff2") format("woff2-variations");
-  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+  src: url("../node_modules/@fontsource-variable/geist/files/geist-latin-ext-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 @font-face {
@@ -17,8 +21,12 @@
   font-style: normal;
   font-display: swap;
   font-weight: 100 900;
-  src: url("../node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2") format("woff2-variations");
-  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+  src: url("../node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
 }
 
 /* Colors: one token set for light and dark themes */
@@ -56,6 +64,10 @@
 }
 
 @layer base {
+  html {
+    background: var(--bg);
+    min-height: 100%;
+  }
   body {
     background: var(--bg);
     color: var(--fg);
@@ -63,7 +75,8 @@
     font-size: 15px;
     line-height: 1.5;
     min-height: 100dvh;
-    padding-block: 32px 48px;
+    padding-top: 32px;
+    padding-bottom: max(48px, calc(env(safe-area-inset-bottom, 0px) + 24px));
     padding-left: max(20px, env(safe-area-inset-left, 0px));
     padding-right: max(20px, env(safe-area-inset-right, 0px));
     -webkit-font-smoothing: antialiased;
@@ -93,7 +106,11 @@
     font-weight: 500;
     letter-spacing: 0.005em;
     white-space: nowrap;
-    transition: background-color 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s,
+      color 0.15s,
+      opacity 0.15s;
   }
   .btn-solid {
     background: var(--accent);
@@ -138,7 +155,9 @@
     height: 2.25rem;
     border-radius: 9999px;
     color: var(--muted);
-    transition: background-color 0.15s, color 0.15s;
+    transition:
+      background-color 0.15s,
+      color 0.15s;
   }
   .icon-btn:hover {
     background: var(--hover);
@@ -150,7 +169,9 @@
     padding: 0.25rem 0.5rem;
     font-size: 0.8125rem;
     color: var(--muted);
-    transition: background-color 0.15s, color 0.15s;
+    transition:
+      background-color 0.15s,
+      color 0.15s;
   }
   .link-btn:hover {
     background: var(--hover);
@@ -160,21 +181,48 @@
 
 /* Task completion: check pops, row fades out slowly and collapses; it fades in again in the completed area */
 @keyframes check-pop {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.35); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 @keyframes task-out {
-  0% { opacity: 1; max-height: 4rem; min-height: 3.25rem; }
-  100% { opacity: 0; max-height: 0; min-height: 0; }
+  0% {
+    opacity: 1;
+    max-height: 4rem;
+    min-height: 3.25rem;
+  }
+  100% {
+    opacity: 0;
+    max-height: 0;
+    min-height: 0;
+  }
 }
 @keyframes task-in {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
-.check-pop { animation: check-pop 0.4s ease-out; }
-.task-out { overflow: hidden; animation: task-out 0.8s ease-in-out forwards; }
-.task-in { animation: task-in 0.45s ease-out; }
+.check-pop {
+  animation: check-pop 0.4s ease-out;
+}
+.task-out {
+  overflow: hidden;
+  animation: task-out 0.8s ease-in-out forwards;
+}
+.task-in {
+  animation: task-in 0.45s ease-out;
+}
 
 @media (prefers-reduced-motion: reduce) {
   * {

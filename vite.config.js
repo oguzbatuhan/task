@@ -25,7 +25,7 @@ export default defineConfig({
         start_url: base,
         scope: base,
         display: "standalone",
-        background_color: "#f6f7f8",
+        background_color: "#0c1216",
         // Fallback only; the <meta name="theme-color"> tags in index.html follow light/dark mode
         theme_color: "#f6f7f8",
         icons: [
