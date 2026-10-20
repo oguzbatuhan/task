@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckIcon, TrashIcon } from "./Icons.jsx";
 
-// Date heading: with a divider line and the "done/total" count
+// Date heading: the day on the left, "done/total" on the right
 export function GroupHead({ primary, secondary, count }) {
   return (
-    <h2 className="mb-2 flex items-baseline gap-2">
-      <span className="display text-base font-semibold">{primary}</span>
-      {secondary ? <span className="text-sm text-[var(--muted)]">{secondary}</span> : null}
-      <span className="h-px flex-1 self-center bg-[var(--line-strong)]" aria-hidden="true"></span>
-      <span className="tabular text-sm text-[var(--muted)]">{count}</span>
+    <h2 className="flex items-baseline gap-2 border-b border-[var(--line-strong)] pb-2 text-sm">
+      <span className="font-medium">{primary}</span>
+      {secondary ? <span className="text-[var(--muted)]">{secondary}</span> : null}
+      <span className="flex-1" aria-hidden="true"></span>
+      <span className="tabular font-medium">{count}</span>
     </h2>
   );
 }
@@ -36,13 +36,12 @@ export function TaskRow({ task, sortable, onToggle, onRemove }) {
   }, [confirming]);
 
   const dragging = sortable && sortable.dragging;
-  const base =
-    "relative flex items-center gap-3 rounded-xl border bg-[var(--surface)] px-3 py-3 sm:px-4 ";
+  const base = "relative -mx-2 flex min-h-[3.25rem] items-center gap-3 rounded-xl border px-2 text-sm ";
   const cls =
     base +
     (dragging
-      ? "z-10 border-[var(--accent)] shadow-lg "
-      : "border-[var(--line)] ") +
+      ? "z-10 border-[var(--line-strong)] bg-[var(--surface)] shadow-lg "
+      : "border-transparent after:absolute after:inset-x-2 after:bottom-0 after:h-px after:bg-[var(--line)] last:after:hidden ") +
     (sortable
       ? "select-none [-webkit-touch-callout:none] " +
         (sortable.active && !dragging ? "transition-transform duration-150" : "")
@@ -50,24 +49,14 @@ export function TaskRow({ task, sortable, onToggle, onRemove }) {
 
   if (confirming) {
     return (
-      <li className={base + "border-[var(--warn)]"} role="alertdialog" aria-label={"Silme onayı: " + task.title}>
-        <p className="min-w-0 flex-1 break-words text-base">
-          <span className="font-semibold">Silinsin mi?</span>{" "}
-          <span className="text-[var(--muted)]">{task.title}</span>
+      <li className={base + "border-transparent"} role="alertdialog" aria-label={"Silme onayı: " + task.title}>
+        <p className="min-w-0 flex-1 break-words">
+          Silinsin mi? <span className="text-[var(--muted)]">{task.title}</span>
         </p>
-        <button
-          ref={cancelRef}
-          type="button"
-          onClick={() => setConfirming(false)}
-          className="shrink-0 rounded-lg border border-[var(--line-strong)] px-3 py-1.5 text-sm font-semibold"
-        >
+        <button ref={cancelRef} type="button" onClick={() => setConfirming(false)} className="btn btn-ghost btn-sm">
           Vazgeç
         </button>
-        <button
-          type="button"
-          onClick={() => onRemove(task.id)}
-          className="shrink-0 rounded-lg bg-[var(--warn)] px-3 py-1.5 text-sm font-semibold text-[var(--bg)]"
-        >
+        <button type="button" onClick={() => onRemove(task.id)} className="btn btn-warn btn-sm">
           Sil
         </button>
       </li>
@@ -89,30 +78,28 @@ export function TaskRow({ task, sortable, onToggle, onRemove }) {
         aria-label={(task.done ? "Tamamlandı işaretini kaldır: " : "Tamamlandı olarak işaretle: ") + task.title}
         onClick={() => onToggle(task.id)}
         className={
-          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all " +
+          "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors " +
           (task.done
-            ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)] opacity-40"
+            ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
             : "border-[var(--line-strong)] text-transparent hover:border-[var(--accent)]")
         }
       >
         <CheckIcon />
       </button>
-      <div className="min-w-0 flex-1">
-        <p
-          className={
-            "break-words text-base transition-opacity " +
-            (task.done ? "text-[var(--muted)] line-through opacity-50" : "text-[var(--fg)]")
-          }
-        >
-          {task.title}
-        </p>
-      </div>
+      <p
+        className={
+          "min-w-0 flex-1 break-words text-[0.9375rem] transition-opacity " +
+          (task.done ? "text-[var(--muted)] line-through opacity-60" : "text-[var(--fg)]")
+        }
+      >
+        {task.title}
+      </p>
       <button
         ref={trashRef}
         type="button"
         onClick={() => setConfirming(true)}
         aria-label={"Sil: " + task.title}
-        className="shrink-0 rounded-lg p-2 text-[var(--muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--fg)]"
+        className="icon-btn"
       >
         <TrashIcon />
       </button>

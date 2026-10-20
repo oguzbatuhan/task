@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertIcon, CloseIcon, CloudIcon, RefreshIcon } from "./Icons.jsx";
+import { AlertIcon, CloudIcon, RefreshIcon, UnlinkIcon } from "./Icons.jsx";
 
 const pill =
-  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ";
-const pillNeutral = "border-[var(--line)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--line-strong)] hover:text-[var(--fg)]";
-const pillAccent = "border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent-soft)]";
-const pillWarn = "border-[var(--warn)] text-[var(--warn)] hover:bg-[var(--accent-soft)]";
+  "inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-[0.8125rem] font-medium transition-colors ";
+const pillNeutral =
+  "border-[var(--line)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--line-strong)] hover:text-[var(--fg)]";
+const pillAccent = "border-transparent bg-[var(--accent-soft)] text-[var(--accent)] hover:opacity-85";
+const pillWarn = "border-[var(--warn)] text-[var(--warn)] hover:bg-[var(--hover)]";
 const menuItem =
-  "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--accent-soft)]";
+  "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--hover)]";
 
 function timeText(ms) {
   return new Date(ms).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 }
 
-// Compact Drive sync pill in the header; the menu holds the less common actions
+// Drive sync chip for the top-right corner of the header; the menu holds the actions
 export default function SyncBar({ sync }) {
   const { configured, connected, status, lastSynced, error, connect, disconnect, syncNow } = sync;
   const [menu, setMenu] = useState(false);
@@ -49,13 +50,8 @@ export default function SyncBar({ sync }) {
           <AlertIcon />
           Yeniden bağlan
         </button>
-        <button
-          type="button"
-          onClick={disconnect}
-          aria-label="Drive bağlantısını kes"
-          className="rounded-full p-2 text-[var(--muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--fg)]"
-        >
-          <CloseIcon />
+        <button type="button" onClick={disconnect} aria-label="Drive bağlantısını kes" className="icon-btn">
+          <UnlinkIcon />
         </button>
       </div>
     );
@@ -63,11 +59,7 @@ export default function SyncBar({ sync }) {
 
   const syncing = status === "syncing";
   const failed = status === "error";
-  const label = failed
-    ? "Eşitleme hatası"
-    : syncing
-      ? "Eşitleniyor…"
-      : "Eşitlendi" + (lastSynced ? " · " + timeText(lastSynced) : "");
+  const label = failed ? "Hata" : syncing ? "Eşitleniyor" : lastSynced ? timeText(lastSynced) : "Drive";
 
   return (
     <div className="relative" ref={box}>
@@ -75,6 +67,7 @@ export default function SyncBar({ sync }) {
         type="button"
         aria-haspopup="menu"
         aria-expanded={menu}
+        aria-label="Google Drive eşitleme"
         onClick={() => setMenu((v) => !v)}
         className={pill + (failed ? pillWarn : pillNeutral)}
       >
@@ -82,13 +75,22 @@ export default function SyncBar({ sync }) {
         <span role="status" aria-live="polite" className="tabular">
           {label}
         </span>
+        {!failed && !syncing ? (
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden="true"></span>
+        ) : null}
       </button>
       {menu ? (
         <div
           role="menu"
-          className="absolute right-0 top-full z-20 mt-2 w-60 rounded-2xl border border-[var(--line-strong)] bg-[var(--surface)] p-1.5 shadow-lg"
+          className="absolute right-0 top-full z-20 mt-2 w-56 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-1.5 shadow-xl"
         >
-          {failed && error ? <p className="px-3 py-2 text-xs text-[var(--warn)]">{error}</p> : null}
+          <p className="px-3 pb-1.5 pt-2 text-xs text-[var(--muted)]">
+            {failed && error
+              ? error
+              : lastSynced
+                ? "Google Drive · son eşitleme " + timeText(lastSynced)
+                : "Google Drive"}
+          </p>
           <button
             type="button"
             role="menuitem"
@@ -110,7 +112,7 @@ export default function SyncBar({ sync }) {
               disconnect();
             }}
           >
-            <CloseIcon />
+            <UnlinkIcon />
             Bağlantıyı kes
           </button>
         </div>

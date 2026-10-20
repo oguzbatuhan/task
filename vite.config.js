@@ -14,6 +14,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["apple-touch-icon.png"],
+      workbox: { globPatterns: ["**/*.{js,css,html,woff2,png,svg}"] },
       manifest: {
         id: base,
         name: "Görevler",
@@ -23,7 +24,7 @@ export default defineConfig({
         start_url: base,
         scope: base,
         display: "standalone",
-        background_color: "#eef2f4",
+        background_color: "#f6f7f8",
         theme_color: "#0e7c86",
         icons: [
           { src: "icon-192.png", sizes: "192x192", type: "image/png" },

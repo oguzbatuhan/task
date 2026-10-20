@@ -97,7 +97,7 @@ export default function App() {
           count={items.length ? done + "/" + items.length : "0"}
         />
         {items.length === 0 ? (
-          <p className="py-2 text-sm text-[var(--muted)]">Bu günde görev yok.</p>
+          <p className="py-3 text-sm text-[var(--muted)]">Bu günde görev yok.</p>
         ) : (
           <SortableList
             items={items}
@@ -112,23 +112,23 @@ export default function App() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-xl">
-      <header className="mb-6">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="display text-3xl font-bold tracking-tight">Görevler</h1>
-          <SyncBar sync={sync} />
+    <main className="mx-auto w-full max-w-md">
+      <header className="mb-8 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl font-medium tracking-tight">Görevler</h1>
+          <p className="tabular mt-0.5 text-sm text-[var(--muted)]">
+            {todayItems.length === 0 ? "Bugün için görev yok" : "Bugün " + todayDone + "/" + todayItems.length + " tamamlandı"}
+          </p>
         </div>
-        <p className="tabular mt-1 text-sm text-[var(--muted)]">
-          {todayItems.length === 0 ? "Bugün için görev yok" : "Bugün " + todayDone + "/" + todayItems.length + " tamamlandı"}
-        </p>
+        <SyncBar sync={sync} />
       </header>
 
       <Composer today={today} onAdd={add} />
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-9">
         {upcoming.map(renderDay)}
         {upcoming.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-[var(--line-strong)] px-4 py-8 text-center text-[var(--muted)]">
+          <p className="py-4 text-center text-sm text-[var(--muted)]">
             {dates.length === 0
               ? "Henüz görev yok. Yukarıdan ilk görevini ekle."
               : "Bugün ve sonrası için görev yok."}
@@ -136,13 +136,13 @@ export default function App() {
         ) : null}
 
         {hasPast ? (
-          <div className="flex flex-col gap-6 border-t border-[var(--line)] pt-6">
+          <div className="flex flex-col gap-9 border-t border-[var(--line)] pt-9">
             {pastDates.map(renderDay)}
             {canGoOlder ? (
               <button
                 type="button"
                 onClick={() => setPastCount((n) => n + 1)}
-                className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--muted)] transition-colors hover:border-[var(--line-strong)] hover:text-[var(--fg)]"
+                className="btn btn-ghost btn-sm mx-auto gap-1.5"
               >
                 Bir önceki günü göster
                 <ChevronIcon dir="down" />

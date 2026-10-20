@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 const HOLD_MS = 320; // hold duration
 const SLOP = 8; // moving this far counts as scrolling; drag does not start
-const GAP = 8; // gap between rows (gap-2)
+const GAP = 0; // rows are flush, separated by divider lines
 const EDGE = 70; // auto-scroll when near the screen edge
 
 // Reorders list items by long-press and drag.
@@ -113,7 +113,7 @@ export default function SortableList({ items, onReorder, renderItem }) {
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul>
       {items.map((t, i) => {
         let style;
         const dragging = drag && drag.id === t.id;

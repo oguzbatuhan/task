@@ -3,9 +3,9 @@ import { CalendarIcon, PlusIcon } from "./Icons.jsx";
 import { relativeName, shiftIso, shortDate } from "../lib/dates.js";
 
 const chip =
-  "relative inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ";
-const chipOff = "border-[var(--line)] text-[var(--muted)] hover:border-[var(--line-strong)] hover:text-[var(--fg)]";
-const chipOn = "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]";
+  "relative inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[0.8125rem] font-medium transition-colors ";
+const chipOff = "border-[var(--line-strong)] text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]";
+const chipOn = "border-transparent bg-[var(--accent-soft)] text-[var(--accent)]";
 
 // One-line "add task" bar with quick date chips
 export default function Composer({ today, onAdd }) {
@@ -32,8 +32,8 @@ export default function Composer({ today, onAdd }) {
   }
 
   return (
-    <form onSubmit={submit} className="mb-8">
-      <div className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] py-1.5 pl-4 pr-1.5 transition-colors focus-within:border-[var(--accent)]">
+    <form onSubmit={submit} className="mb-10 border-b border-[var(--line)] pb-8">
+      <div className="flex items-center gap-2 rounded-full border border-[var(--line-strong)] bg-[var(--surface)] py-1 pl-5 pr-1 transition-colors focus-within:border-[var(--accent)]">
         <input
           ref={inputRef}
           type="text"
@@ -44,14 +44,14 @@ export default function Composer({ today, onAdd }) {
           enterKeyHint="done"
           aria-label="Yeni görev"
           placeholder="Yeni görev ekle…"
-          className="min-w-0 flex-1 bg-transparent py-2 text-base text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"
+          className="min-w-0 flex-1 bg-transparent py-2 text-[0.9375rem] text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"
         />
         <button
           type="submit"
           aria-label="Görevi ekle"
           aria-disabled={empty}
           className={
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-fg)] transition-opacity " +
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)] transition-opacity " +
             (empty ? "opacity-40" : "hover:opacity-90")
           }
         >
@@ -59,7 +59,7 @@ export default function Composer({ today, onAdd }) {
         </button>
       </div>
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label="Tarih">
+      <div className="mt-3 flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label="Tarih">
         <button
           type="button"
           role="radio"
