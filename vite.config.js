@@ -19,17 +19,24 @@ export default defineConfig({
         id: base,
         name: "Görevler",
         short_name: "Görevler",
-        description: "Tarihe göre gruplanan, Google Drive ile eşitlenebilen yapılacaklar listesi.",
+        description:
+          "Tarihe göre gruplanan, Google Drive ile eşitlenebilen yapılacaklar listesi.",
         lang: "tr",
         start_url: base,
         scope: base,
         display: "standalone",
         background_color: "#f6f7f8",
-        theme_color: "#0e7c86",
+        // Fallback only; the <meta name="theme-color"> tags in index.html follow light/dark mode
+        theme_color: "#f6f7f8",
         icons: [
           { src: "icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "icon-512.png", sizes: "512x512", type: "image/png" },
-          { src: "icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          {
+            src: "icon-maskable-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
         ],
       },
     }),

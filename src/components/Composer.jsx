@@ -4,8 +4,10 @@ import { relativeName, shiftIso, shortDate } from "../lib/dates.js";
 
 const chip =
   "relative inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[0.8125rem] font-medium transition-colors ";
-const chipOff = "border-[var(--line-strong)] text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]";
-const chipOn = "border-transparent bg-[var(--accent-soft)] text-[var(--accent)]";
+const chipOff =
+  "border-[var(--line-strong)] text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]";
+const chipOn =
+  "border-transparent bg-[var(--accent-soft)] text-[var(--accent)]";
 
 // One-line "add task" bar with quick date chips
 export default function Composer({ today, onAdd }) {
@@ -32,7 +34,7 @@ export default function Composer({ today, onAdd }) {
   }
 
   return (
-    <form onSubmit={submit} className="mb-10 border-b border-[var(--line)] pb-8">
+    <form onSubmit={submit} className="mb-11">
       <div className="flex items-center gap-2 rounded-full border border-[var(--line-strong)] bg-[var(--surface)] py-1 pl-5 pr-1 transition-colors focus-within:border-[var(--accent)]">
         <input
           ref={inputRef}
@@ -59,7 +61,11 @@ export default function Composer({ today, onAdd }) {
         </button>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label="Tarih">
+      <div
+        className="mt-3 flex flex-wrap items-center gap-1.5"
+        role="radiogroup"
+        aria-label="Tarih"
+      >
         <button
           type="button"
           role="radio"
@@ -78,9 +84,15 @@ export default function Composer({ today, onAdd }) {
         >
           Yarın
         </button>
-        <label className={chip + "cursor-pointer " + (custom ? chipOn : chipOff)}>
+        <label
+          className={chip + "cursor-pointer " + (custom ? chipOn : chipOff)}
+        >
           <CalendarIcon />
-          <span>{custom ? relativeName(date, today) || shortDate(date) : "Tarih seç"}</span>
+          <span>
+            {custom
+              ? relativeName(date, today) || shortDate(date)
+              : "Tarih seç"}
+          </span>
           <input
             type="date"
             value={date}
