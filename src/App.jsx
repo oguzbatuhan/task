@@ -5,13 +5,15 @@ import Composer from "./components/Composer.jsx";
 import SyncBar from "./components/SyncBar.jsx";
 import SortableList from "./components/SortableList.jsx";
 import { useDriveSync } from "./hooks/useDriveSync.js";
-import { groupLabel, shiftIso, toIso } from "./lib/dates.js";
+import { groupLabel, toIso } from "./lib/dates.js";
 import { STORAGE_KEY, loadTasks, newTask } from "./lib/tasks.js";
+
+const PAST_PAGE_DAYS = 14;
 
 export default function App() {
   const [today, setToday] = useState(() => toIso(new Date()));
-  // How many past days are shown under the list (1 = only yesterday)
-  const [pastCount, setPastCount] = useState(1);
+  // How many past days (that have tasks) are shown under the list
+  const [pastLimit, setPastLimit] = useState(PAST_PAGE_DAYS);
   const [tasks, setTasks] = useState(loadTasks);
   const sync = useDriveSync(tasks, setTasks);
 
@@ -32,7 +34,7 @@ export default function App() {
       document.removeEventListener("visibilitychange", check);
     };
   }, []);
-  useEffect(() => setPastCount(1), [today]);
+  useEffect(() => setPastLimit(PAST_PAGE_DAYS), [today]);
 
   // Tasks per date, in manual order. Completed tasks stay in their day.
   const byDate = useMemo(() => {
@@ -50,12 +52,11 @@ export default function App() {
 
   const dates = useMemo(() => [...byDate.keys()].sort(), [byDate]);
   const upcoming = useMemo(() => dates.filter((d) => d >= today), [dates, today]);
-  const pastDates = useMemo(
-    () => Array.from({ length: pastCount }, (_, i) => shiftIso(today, -(i + 1))),
-    [today, pastCount],
-  );
-  const hasPast = dates.length > 0 && dates[0] < today;
-  const canGoOlder = dates.length > 0 && dates[0] < pastDates[pastDates.length - 1];
+  // Past days: only days that have tasks, newest first, shown in pages
+  const allPast = useMemo(() => dates.filter((d) => d < today).reverse(), [dates, today]);
+  const pastDates = allPast.slice(0, pastLimit);
+  const hasPast = allPast.length > 0;
+  const canGoOlder = allPast.length > pastLimit;
 
   const todayItems = byDate.get(today) || [];
   const todayDone = todayItems.filter((t) => t.done).length;
@@ -141,10 +142,10 @@ export default function App() {
             {canGoOlder ? (
               <button
                 type="button"
-                onClick={() => setPastCount((n) => n + 1)}
+                onClick={() => setPastLimit((n) => n + PAST_PAGE_DAYS)}
                 className="btn btn-ghost btn-sm mx-auto gap-1.5"
               >
-                Bir önceki günü göster
+                Daha eski günler
                 <ChevronIcon dir="down" />
               </button>
             ) : null}
