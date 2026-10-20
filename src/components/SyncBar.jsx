@@ -1,14 +1,19 @@
 import { useEffect, useRef, useState } from "react";
+import { AlertIcon, CloseIcon, CloudIcon, RefreshIcon } from "./Icons.jsx";
 
-const linkButton = "rounded-md px-1.5 py-0.5 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--accent-soft)]";
+const pill =
+  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ";
+const pillNeutral = "border-[var(--line)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--line-strong)] hover:text-[var(--fg)]";
+const pillAccent = "border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent-soft)]";
+const pillWarn = "border-[var(--warn)] text-[var(--warn)] hover:bg-[var(--accent-soft)]";
 const menuItem =
-  "block w-full whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--accent-soft)]";
+  "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--accent-soft)]";
 
 function timeText(ms) {
   return new Date(ms).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 }
 
-// A small one-line status indicator shown once sync is set up
+// Compact Drive sync pill in the header; the menu holds the less common actions
 export default function SyncBar({ sync }) {
   const { configured, connected, status, lastSynced, error, connect, disconnect, syncNow } = sync;
   const [menu, setMenu] = useState(false);
@@ -28,62 +33,62 @@ export default function SyncBar({ sync }) {
 
   if (!configured) return null;
 
-  const row = "mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs";
-
   if (!connected || status === "off") {
     return (
-      <div className={row}>
-        <span className="h-1.5 w-1.5 rounded-full bg-[var(--line-strong)]" aria-hidden="true"></span>
-        <span className="text-[var(--muted)]">Yalnızca bu cihazda</span>
-        <button type="button" onClick={connect} className={linkButton}>
-          Drive’a bağlan
-        </button>
-      </div>
+      <button type="button" onClick={connect} className={pill + pillAccent}>
+        <CloudIcon />
+        Drive’a bağlan
+      </button>
     );
   }
 
-  if (status === "needs-auth" || status === "error") {
+  if (status === "needs-auth") {
     return (
-      <div className={row} role="status">
-        <span className="h-1.5 w-1.5 rounded-full bg-[var(--warn)]" aria-hidden="true"></span>
-        <span className="text-[var(--warn)]">
-          {status === "needs-auth" ? "Drive oturumu kapandı." : "Eşitleme hatası."}
-          {error ? " " + error : ""}
-        </span>
-        <button type="button" onClick={status === "needs-auth" ? connect : syncNow} className={linkButton}>
-          {status === "needs-auth" ? "Yeniden bağlan" : "Tekrar dene"}
+      <div className="flex items-center gap-1" role="status">
+        <button type="button" onClick={connect} className={pill + pillWarn}>
+          <AlertIcon />
+          Yeniden bağlan
         </button>
-        <button type="button" onClick={disconnect} className={linkButton + " !text-[var(--muted)]"}>
-          Kes
+        <button
+          type="button"
+          onClick={disconnect}
+          aria-label="Drive bağlantısını kes"
+          className="rounded-full p-2 text-[var(--muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--fg)]"
+        >
+          <CloseIcon />
         </button>
       </div>
     );
   }
 
   const syncing = status === "syncing";
+  const failed = status === "error";
+  const label = failed
+    ? "Eşitleme hatası"
+    : syncing
+      ? "Eşitleniyor…"
+      : "Eşitlendi" + (lastSynced ? " · " + timeText(lastSynced) : "");
+
   return (
-    <div className="relative mt-1.5 inline-block" ref={box}>
+    <div className="relative" ref={box}>
       <button
         type="button"
         aria-haspopup="menu"
         aria-expanded={menu}
         onClick={() => setMenu((v) => !v)}
-        className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs text-[var(--muted)] hover:bg-[var(--accent-soft)]"
-        style={{ marginLeft: "-6px" }}
+        className={pill + (failed ? pillWarn : pillNeutral)}
       >
-        <span
-          className={"h-1.5 w-1.5 rounded-full bg-[var(--accent)] " + (syncing ? "animate-pulse" : "")}
-          aria-hidden="true"
-        ></span>
+        {failed ? <AlertIcon /> : syncing ? <RefreshIcon spinning /> : <CloudIcon />}
         <span role="status" aria-live="polite" className="tabular">
-          {syncing ? "Eşitleniyor…" : "Drive" + (lastSynced ? " · " + timeText(lastSynced) : "")}
+          {label}
         </span>
       </button>
       {menu ? (
         <div
           role="menu"
-          className="absolute left-0 top-full z-20 mt-1 rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] p-1 shadow-lg"
+          className="absolute right-0 top-full z-20 mt-2 w-60 rounded-2xl border border-[var(--line-strong)] bg-[var(--surface)] p-1.5 shadow-lg"
         >
+          {failed && error ? <p className="px-3 py-2 text-xs text-[var(--warn)]">{error}</p> : null}
           <button
             type="button"
             role="menuitem"
@@ -93,17 +98,19 @@ export default function SyncBar({ sync }) {
               syncNow();
             }}
           >
-            Şimdi eşitle
+            <RefreshIcon />
+            {failed ? "Tekrar dene" : "Şimdi eşitle"}
           </button>
           <button
             type="button"
             role="menuitem"
-            className={menuItem}
+            className={menuItem + " text-[var(--muted)]"}
             onClick={() => {
               setMenu(false);
               disconnect();
             }}
           >
+            <CloseIcon />
             Bağlantıyı kes
           </button>
         </div>

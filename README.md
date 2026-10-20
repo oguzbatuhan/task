@@ -1,6 +1,6 @@
 # Görevler
 
-React + Tailwind CSS ile yapılmış yapılacaklar listesi (kullanıcıya görünen adı **Görevler**, teknik adı `task`). Görevler önümüzdeki 10 günün tarihlerine göre gruplanır, tamamlananlar üstü çizili olarak en alta iner. Veriler tarayıcıda saklanır, istersen Google Drive ile cihazlar arasında eşitlenir. GitHub Actions her `main` güncellemesinde siteyi GitHub Pages'e yayınlar.
+React + Tailwind CSS ile yapılmış yapılacaklar listesi (kullanıcıya görünen adı **Görevler**, teknik adı `task`). Görevler tarihlerine göre gruplanır. Tamamlanan görev silinmez, kendi gününde üstü çizili ve soluk kalır. Bugün ve sonrası ana listede, geçmiş günler altında görünür: önce dün, "Bir önceki günü göster" düğmesine her basışta bir gün daha geriye gidilir. Veriler tarayıcıda saklanır, istersen Google Drive ile cihazlar arasında eşitlenir. GitHub Actions her `main` güncellemesinde siteyi GitHub Pages'e yayınlar.
 
 ## Yerelde çalıştırma
 
@@ -8,6 +8,7 @@ React + Tailwind CSS ile yapılmış yapılacaklar listesi (kullanıcıya görü
 npm install
 cp .env.example .env.local   # Drive eşitlemesi için istemci kimliğini buraya yaz
 npm run dev                  # http://localhost:5173
+npm test                     # tarih ve birleştirme mantığı testleri
 ```
 
 İstemci kimliği olmadan da uygulama çalışır. Bu durumda Drive eşitleme kapalıdır ve görevler yalnızca tarayıcıda saklanır.

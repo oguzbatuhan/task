@@ -1,15 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckIcon, TrashIcon } from "./Icons.jsx";
 
-// Date (or "Tamamlananlar") heading: with a divider line and the task count
-export function GroupHead({ primary, secondary, tag, count }) {
+// Date heading: with a divider line and the "done/total" count
+export function GroupHead({ primary, secondary, count }) {
   return (
     <h2 className="mb-2 flex items-baseline gap-2">
       <span className="display text-base font-semibold">{primary}</span>
       {secondary ? <span className="text-sm text-[var(--muted)]">{secondary}</span> : null}
-      {tag ? (
-        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--warn)]">{tag}</span>
-      ) : null}
       <span className="h-px flex-1 self-center bg-[var(--line-strong)]" aria-hidden="true"></span>
       <span className="tabular text-sm text-[var(--muted)]">{count}</span>
     </h2>
@@ -18,7 +15,7 @@ export function GroupHead({ primary, secondary, tag, count }) {
 
 const CONFIRM_MS = 5000;
 
-export function TaskRow({ task, meta, sortable, onToggle, onRemove }) {
+export function TaskRow({ task, sortable, onToggle, onRemove }) {
   const [confirming, setConfirming] = useState(false);
   const cancelRef = useRef(null);
   const trashRef = useRef(null);
@@ -92,19 +89,23 @@ export function TaskRow({ task, meta, sortable, onToggle, onRemove }) {
         aria-label={(task.done ? "Tamamlandı işaretini kaldır: " : "Tamamlandı olarak işaretle: ") + task.title}
         onClick={() => onToggle(task.id)}
         className={
-          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors " +
+          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all " +
           (task.done
-            ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
+            ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)] opacity-40"
             : "border-[var(--line-strong)] text-transparent hover:border-[var(--accent)]")
         }
       >
         <CheckIcon />
       </button>
       <div className="min-w-0 flex-1">
-        <p className={"break-words text-base " + (task.done ? "text-[var(--muted)] line-through" : "text-[var(--fg)]")}>
+        <p
+          className={
+            "break-words text-base transition-opacity " +
+            (task.done ? "text-[var(--muted)] line-through opacity-50" : "text-[var(--fg)]")
+          }
+        >
           {task.title}
         </p>
-        {meta ? <p className="tabular mt-0.5 text-sm text-[var(--muted)]">{meta}</p> : null}
       </div>
       <button
         ref={trashRef}

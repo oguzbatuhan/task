@@ -7,38 +7,35 @@ export const fromIso = (s) => {
   return new Date(y, m - 1, d, 12);
 };
 
-// List of n dates starting from today
-export const nextDays = (n, offset = 0) => {
-  const base = new Date();
-  base.setHours(12, 0, 0, 0);
-  base.setDate(base.getDate() + offset);
-  return Array.from({ length: n }, (_, i) => {
-    const d = new Date(base);
-    d.setDate(base.getDate() + i);
-    return d;
-  });
+// Moves an ISO date (YYYY-MM-DD) forward (n > 0) or backward (n < 0) by n days
+export const shiftIso = (iso, n) => {
+  const d = fromIso(iso);
+  d.setDate(d.getDate() + n);
+  return toIso(d);
 };
 
-export const weekday = (d) => d.toLocaleDateString("tr-TR", { weekday: "short" });
-export const month = (d) => d.toLocaleDateString("tr-TR", { month: "short" });
 const weekdayLong = (d) => d.toLocaleDateString("tr-TR", { weekday: "long" });
 const dayAndMonthLong = (d) => d.getDate() + " " + d.toLocaleDateString("tr-TR", { month: "long" });
+const dayAndMonthShort = (d) => d.getDate() + " " + d.toLocaleDateString("tr-TR", { month: "short" });
 
-// Short date shown under each task in the completed section
-export function dateLabel(iso, days) {
-  const i = days.findIndex((d) => toIso(d) === iso);
-  if (i === 0) return "Bugün";
-  if (i === 1) return "Yarın";
-  const d = fromIso(iso);
-  return d.getDate() + " " + month(d) + " " + weekday(d);
+// Name of the day relative to today: "Dün", "Bugün", "Yarın" (or null for any other day)
+export function relativeName(iso, today) {
+  if (iso === today) return "Bugün";
+  if (iso === shiftIso(today, 1)) return "Yarın";
+  if (iso === shiftIso(today, -1)) return "Dün";
+  return null;
 }
 
-// Date group heading: "Bugün  18 Ekim Pazar", "Salı  20 Ekim"
-export function groupLabel(iso, days) {
-  const i = days.findIndex((d) => toIso(d) === iso);
+// Short text for the date chip: "18 Eki Paz"
+export function shortDate(iso) {
+  const d = fromIso(iso);
+  return dayAndMonthShort(d) + " " + d.toLocaleDateString("tr-TR", { weekday: "short" });
+}
+
+// Date group heading: "Bugün  18 Ekim Pazar", "Dün  17 Ekim Cumartesi", "Salı  20 Ekim"
+export function groupLabel(iso, today) {
   const d = fromIso(iso);
   const long = weekdayLong(d);
-  const primary = i === 0 ? "Bugün" : i === 1 ? "Yarın" : long;
-  const secondary = dayAndMonthLong(d) + (i === 0 || i === 1 ? " " + long : "");
-  return { primary, secondary };
+  const rel = relativeName(iso, today);
+  return { primary: rel || long, secondary: dayAndMonthLong(d) + (rel ? " " + long : "") };
 }
