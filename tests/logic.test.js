@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { groupLabel, relativeName, shiftIso } from "../src/lib/dates.js";
-import { mergeTasks, newTask } from "../src/lib/tasks.js";
+import { isValidTime, mergeTasks, newTask, normalizeTasks } from "../src/lib/tasks.js";
 
 test("shiftIso moves across month and year boundaries", () => {
   assert.equal(shiftIso("2026-10-20", -1), "2026-10-19");
@@ -30,4 +30,15 @@ test("a completed task keeps its date and the latest change wins on merge", () =
   assert.equal(merged.length, 1);
   assert.equal(merged[0].done, true);
   assert.equal(merged[0].date, "2026-10-19");
+});
+
+test("task time is optional and validated", () => {
+  assert.equal(newTask("a", "2026-10-19", 1).time, "");
+  assert.equal(newTask("a", "2026-10-19", 1, "09:30").time, "09:30");
+  assert.equal(newTask("a", "2026-10-19", 1, "25:99").time, "");
+  assert.equal(isValidTime("23:59"), true);
+  // Tasks saved before the time field existed load with an empty time
+  const [old] = normalizeTasks([{ id: "x", title: "t", date: "2026-10-19" }]);
+  assert.equal(old.time, "");
+  assert.equal(mergeTasks([], [{ ...old, time: "08:00", updatedAt: 5 }])[0].time, "08:00");
 });

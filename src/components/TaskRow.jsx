@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckIcon, ChevronIcon, TrashIcon } from "./Icons.jsx";
+import { CheckIcon, ChevronIcon, ClockIcon } from "./Icons.jsx";
 
 // Date heading: the day on the left, "done/total" on the right
 export function GroupHead({ primary, secondary, count }) {
@@ -15,7 +15,6 @@ export function GroupHead({ primary, secondary, count }) {
   );
 }
 
-const CONFIRM_MS = 5000;
 // Completion animation: the check pops, then the row slowly fades out and moves to the day's "Tamamlananlar" area
 const CHECK_MS = 450; // check pop + strike-through
 const FADE_MS = 800; // slow fade + collapse
@@ -46,11 +45,24 @@ export function DoneHead({ count, open, onToggle }) {
   );
 }
 
-export function TaskRow({ task, sortable, onToggle, onRemove }) {
-  const [confirming, setConfirming] = useState(false);
-  const cancelRef = useRef(null);
-  const trashRef = useRef(null);
-  const wasConfirming = useRef(false);
+export function TaskRow({ task, sortable, onToggle, onOpen }) {
+  // A long press (drag to reorder) or a move (scroll) must not open the editor
+  const press = useRef(null);
+  const trackPress = (e) => {
+    press.current = { t: Date.now(), x: e.clientX, y: e.clientY };
+    if (sortable) sortable.onPointerDown(e);
+  };
+  const open = (e) => {
+    const p = press.current;
+    press.current = null;
+    if (
+      p &&
+      (Date.now() - p.t > 300 ||
+        Math.hypot(e.clientX - p.x, e.clientY - p.y) > 8)
+    )
+      return;
+    onOpen(task.id);
+  };
   // "idle" | "checking" (check pops) | "fading" (row fades out, then the task is marked done)
   const [phase, setPhase] = useState("idle");
   const timers = useRef([]);
@@ -75,20 +87,6 @@ export function TaskRow({ task, sortable, onToggle, onRemove }) {
 
   const checked = task.done || phase !== "idle";
 
-  // When confirmation is asked, focus moves to the safe option; if untouched it cancels itself
-  useEffect(() => {
-    if (confirming) {
-      wasConfirming.current = true;
-      if (cancelRef.current) cancelRef.current.focus();
-      const id = setTimeout(() => setConfirming(false), CONFIRM_MS);
-      return () => clearTimeout(id);
-    }
-    if (wasConfirming.current) {
-      wasConfirming.current = false;
-      if (trashRef.current) trashRef.current.focus();
-    }
-  }, [confirming]);
-
   const dragging = sortable && sortable.dragging;
   const base =
     "relative -mx-2 flex min-h-[3.25rem] items-center gap-3 rounded-xl border px-2 text-sm ";
@@ -106,35 +104,6 @@ export function TaskRow({ task, sortable, onToggle, onRemove }) {
           : "")
       : "");
 
-  if (confirming) {
-    return (
-      <li
-        className={base + "border-transparent"}
-        role="alertdialog"
-        aria-label={"Silme onayı: " + task.title}
-      >
-        <p className="min-w-0 flex-1 break-words">
-          Silinsin mi? <span className="text-[var(--muted)]">{task.title}</span>
-        </p>
-        <button
-          ref={cancelRef}
-          type="button"
-          onClick={() => setConfirming(false)}
-          className="btn btn-ghost btn-sm"
-        >
-          Vazgeç
-        </button>
-        <button
-          type="button"
-          onClick={() => onRemove(task.id)}
-          className="btn btn-warn btn-sm"
-        >
-          Sil
-        </button>
-      </li>
-    );
-  }
-
   return (
     <li
       ref={sortable ? sortable.refCallback : undefined}
@@ -145,7 +114,7 @@ export function TaskRow({ task, sortable, onToggle, onRemove }) {
             ? sortable.style
             : undefined
       }
-      onPointerDown={sortable ? sortable.onPointerDown : undefined}
+      onPointerDown={trackPress}
       onContextMenu={sortable ? sortable.onContextMenu : undefined}
       className={cls}
     >
@@ -169,25 +138,41 @@ export function TaskRow({ task, sortable, onToggle, onRemove }) {
       >
         <CheckIcon />
       </button>
-      <p
-        className={
-          "min-w-0 flex-1 break-words text-[0.9375rem] transition-all duration-300 " +
-          (checked
-            ? "text-[var(--muted)] line-through opacity-60"
-            : "text-[var(--fg)]")
-        }
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={open}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onOpen(task.id);
+          }
+        }}
+        aria-label={"Düzenle: " + task.title + (task.time ? ", saat " + task.time : "")}
+        className="min-w-0 flex-1 cursor-pointer self-stretch py-2.5"
       >
-        {task.title}
-      </p>
-      <button
-        ref={trashRef}
-        type="button"
-        onClick={() => setConfirming(true)}
-        aria-label={"Sil: " + task.title}
-        className="icon-btn"
-      >
-        <TrashIcon />
-      </button>
+        <p
+          className={
+            "break-words text-[0.9375rem] transition-all duration-300 " +
+            (checked
+              ? "text-[var(--muted)] line-through opacity-60"
+              : "text-[var(--fg)]")
+          }
+        >
+          {task.title}
+        </p>
+        {task.time ? (
+          <p
+            className={
+              "tabular mt-0.5 inline-flex items-center gap-1 text-xs font-medium " +
+              (checked ? "text-[var(--muted)] opacity-60" : "text-[var(--accent)]")
+            }
+          >
+            <ClockIcon />
+            {task.time}
+          </p>
+        ) : null}
+      </div>
     </li>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarIcon, PlusIcon } from "./Icons.jsx";
+import { CalendarIcon, ClockIcon, CloseIcon, PlusIcon } from "./Icons.jsx";
 import { relativeName, shiftIso, shortDate } from "../lib/dates.js";
 
 const chip =
@@ -13,6 +13,7 @@ const chipOn =
 export default function Composer({ today, onAdd }) {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(today);
+  const [time, setTime] = useState("");
   const inputRef = useRef(null);
   const tomorrow = shiftIso(today, 1);
   const custom = date !== today && date !== tomorrow;
@@ -28,8 +29,9 @@ export default function Composer({ today, onAdd }) {
       if (inputRef.current) inputRef.current.focus();
       return;
     }
-    onAdd(text, date);
+    onAdd(text, date, time);
     setTitle("");
+    setTime("");
     if (inputRef.current) inputRef.current.focus();
   }
 
@@ -107,6 +109,40 @@ export default function Composer({ today, onAdd }) {
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
         </label>
+        <span className="relative inline-flex">
+          <label
+            className={
+              chip +
+              "cursor-pointer " +
+              (time ? chipOn + " pr-8" : chipOff)
+            }
+          >
+            <ClockIcon />
+            <span className="tabular">{time || "Saat ekle"}</span>
+            <input
+              type="time"
+              value={time}
+              aria-label="Saat seç"
+              onChange={(e) => setTime(e.target.value)}
+              onClick={(e) => {
+                try {
+                  e.currentTarget.showPicker();
+                } catch {}
+              }}
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            />
+          </label>
+          {time ? (
+            <button
+              type="button"
+              onClick={() => setTime("")}
+              aria-label="Saati kaldır"
+              className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-[var(--accent)] hover:bg-[var(--hover)]"
+            >
+              <CloseIcon />
+            </button>
+          ) : null}
+        </span>
       </div>
     </form>
   );

@@ -3,6 +3,7 @@ import { ChevronIcon } from "./components/Icons.jsx";
 import { DoneHead, GroupHead, TaskRow } from "./components/TaskRow.jsx";
 import Composer from "./components/Composer.jsx";
 import SyncBar from "./components/SyncBar.jsx";
+import EditDialog from "./components/EditDialog.jsx";
 import SortableList from "./components/SortableList.jsx";
 import { useDriveSync } from "./hooks/useDriveSync.js";
 import { groupLabel, toIso } from "./lib/dates.js";
@@ -72,7 +73,7 @@ export default function App() {
   const todayItems = byDate.get(today) || [];
   const todayDone = todayItems.filter((t) => t.done).length;
 
-  const add = (title, date) =>
+  const add = (title, date, time = "") =>
     setTasks((prev) => {
       // A new task is appended to the bottom of that day's list
       const last = Math.max(
@@ -81,7 +82,7 @@ export default function App() {
           .filter((t) => !t.deleted && t.date === date)
           .map((t) => t.order),
       );
-      return [...prev, newTask(title, date, last + 1)];
+      return [...prev, newTask(title, date, last + 1, time)];
     });
 
   const toggle = (id) =>
@@ -96,6 +97,40 @@ export default function App() {
         t.id === id ? { ...t, deleted: true, updatedAt: Date.now() } : t,
       ),
     );
+
+  // Edit dialog: opened by tapping a task
+  const [editingId, setEditingId] = useState(null);
+  const editing = editingId
+    ? tasks.find((t) => t.id === editingId && !t.deleted) || null
+    : null;
+
+  const save = (id, { title, date, time }) => {
+    setTasks((prev) => {
+      const cur = prev.find((t) => t.id === id);
+      if (!cur) return prev;
+      // Moved to another day: goes to the bottom of that day's list
+      let order = cur.order;
+      if (date !== cur.date) {
+        order =
+          Math.max(
+            0,
+            ...prev
+              .filter((t) => !t.deleted && t.date === date)
+              .map((t) => t.order),
+          ) + 1;
+      }
+      return prev.map((t) =>
+        t.id === id
+          ? { ...t, title, date, time, order, updatedAt: Date.now() }
+          : t,
+      );
+    });
+    setEditingId(null);
+  };
+  const removeAndClose = (id) => {
+    remove(id);
+    setEditingId(null);
+  };
 
   // Long-press and drag to reorder tasks within the same day
   const reorder = (items, from, to) => {
@@ -153,7 +188,7 @@ export default function App() {
                 task={t}
                 sortable={sortable}
                 onToggle={toggle}
-                onRemove={remove}
+                onOpen={setEditingId}
               />
             )}
           />
@@ -172,7 +207,7 @@ export default function App() {
                     key={t.id}
                     task={t}
                     onToggle={toggle}
-                    onRemove={remove}
+                    onOpen={setEditingId}
                   />
                 ))}
               </ul>
@@ -225,6 +260,14 @@ export default function App() {
           </div>
         ) : null}
       </div>
+      {editing ? (
+        <EditDialog
+          task={editing}
+          onSave={save}
+          onDelete={removeAndClose}
+          onClose={() => setEditingId(null)}
+        />
+      ) : null}
     </main>
   );
 }

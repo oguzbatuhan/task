@@ -137,3 +137,20 @@ export function UnlinkIcon() {
     </svg>
   );
 }
+
+export function ClockIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 18 18" {...base}>
+      <circle cx="9" cy="9" r="6.5" strokeWidth="1.5" {...stroke} />
+      <path d="M9 5.5V9l2.4 1.6" strokeWidth="1.5" {...stroke} />
+    </svg>
+  );
+}
+
+export function CloseIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 18 18" {...base}>
+      <path d="M4.5 4.5l9 9M13.5 4.5l-9 9" strokeWidth="2" {...stroke} />
+    </svg>
+  );
+}

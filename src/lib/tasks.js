@@ -10,8 +10,11 @@ export function uid() {
 }
 
 // order: manual position among tasks on the same date (smaller comes first)
-export function newTask(title, date, order = 0) {
-  return { id: uid(), title, date, done: false, deleted: false, updatedAt: Date.now(), order };
+// time: optional "HH:MM" (24h) or "" when the task has no set time
+export const isValidTime = (v) => typeof v === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
+
+export function newTask(title, date, order = 0, time = "") {
+  return { id: uid(), title, date, time: isValidTime(time) ? time : "", done: false, deleted: false, updatedAt: Date.now(), order };
 }
 
 export function normalizeTasks(list) {
@@ -22,6 +25,7 @@ export function normalizeTasks(list) {
       id: t.id,
       title: t.title,
       date: t.date,
+      time: isValidTime(t.time) ? t.time : "",
       done: Boolean(t.done),
       deleted: Boolean(t.deleted),
       updatedAt: Number(t.updatedAt) || 0,

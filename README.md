@@ -1,6 +1,6 @@
 # Görevler
 
-React + Tailwind CSS ile yapılmış yapılacaklar listesi (kullanıcıya görünen adı **Görevler**, teknik adı `task`). Görevler tarihlerine göre gruplanır. Tamamlanan görev silinmez, kendi gününde üstü çizili ve soluk kalır. Bugün ve sonrası ana listede, geçmiş günler altında görünür: yalnızca görevi olan son 14 gün gösterilir, "Daha eski günler" düğmesi her basışta 14 gün daha açar. Veriler tarayıcıda saklanır, istersen Google Drive ile cihazlar arasında eşitlenir. GitHub Actions her `main` güncellemesinde siteyi GitHub Pages'e yayınlar.
+React + Tailwind CSS ile yapılmış yapılacaklar listesi (kullanıcıya görünen adı **Görevler**, teknik adı `task`). Görevler tarihlerine göre gruplanır. Tamamlanan görev silinmez, kendi gününde üstü çizili ve soluk kalır. Bugün ve sonrası ana listede, geçmiş günler altında görünür: yalnızca görevi olan son 14 gün gösterilir, "Daha eski günler" düğmesi her basışta 14 gün daha açar. Her göreve istenirse bir saat eklenebilir (ekleme çubuğundaki **Saat ekle** düğmesi). Bir göreve dokununca açılan pencerede adı, günü ve saati değiştirilebilir ya da görev silinebilir. Veriler tarayıcıda saklanır, istersen Google Drive ile cihazlar arasında eşitlenir. GitHub Actions her `main` güncellemesinde siteyi GitHub Pages'e yayınlar.
 
 ## Yerelde çalıştırma
 
