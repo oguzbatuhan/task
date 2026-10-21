@@ -94,7 +94,7 @@ export function TaskRow({ task, sortable, onToggle, onOpen }) {
     base +
     (dragging
       ? "z-10 border-[var(--line-strong)] bg-[var(--surface)] shadow-lg "
-      : "border-transparent  ") +
+      : "border-transparent transition-colors hover:bg-[var(--hover)] ") +
     (phase === "fading" ? "task-out " : "") +
     (task.done ? "task-in " : "") +
     (sortable
