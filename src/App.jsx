@@ -188,7 +188,8 @@ export default function App() {
                 task={t}
                 sortable={sortable}
                 onToggle={toggle}
-                onOpen={setEditingId}
+                onEdit={setEditingId}
+                onRemove={remove}
               />
             )}
           />
@@ -207,7 +208,8 @@ export default function App() {
                     key={t.id}
                     task={t}
                     onToggle={toggle}
-                    onOpen={setEditingId}
+                    onEdit={setEditingId}
+                onRemove={remove}
                   />
                 ))}
               </ul>

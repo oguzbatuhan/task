@@ -3,7 +3,7 @@ import { CalendarIcon, ClockIcon, CloseIcon } from "./Icons.jsx";
 import { shortDate } from "../lib/dates.js";
 
 const field =
-  "relative flex h-11 items-center gap-2 rounded-xl border border-[var(--line-strong)] bg-[var(--bg)] px-3.5 text-[0.9375rem] transition-colors focus-within:border-[var(--accent)]";
+  "relative flex h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--line-strong)] bg-[var(--bg)] px-3.5 text-base transition-colors focus-within:border-[var(--accent)] sm:text-[0.9375rem]";
 
 // Bottom sheet on phones, centered card on larger screens: edit title, day and time, or delete
 export default function EditDialog({ task, onSave, onDelete, onClose }) {
@@ -13,6 +13,7 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
   const [confirming, setConfirming] = useState(false);
   const inputRef = useRef(null);
   const cancelRef = useRef(null);
+  const openedAt = useRef(Date.now());
   const text = title.trim();
 
   // Focus the title, lock page scroll, restore focus on close
@@ -20,7 +21,9 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
     const prev = document.activeElement;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    if (inputRef.current) inputRef.current.focus();
+    // On phones the keyboard would open at once and cover the day/time fields, so only focus with a mouse
+    const fine = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
+    if (fine && inputRef.current) inputRef.current.focus();
     return () => {
       document.body.style.overflow = overflow;
       if (prev && prev.focus) prev.focus();
@@ -30,6 +33,24 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
   useEffect(() => {
     if (confirming && cancelRef.current) cancelRef.current.focus();
   }, [confirming]);
+
+  // Follow the visible area so the on-screen keyboard never covers the sheet
+  const [vv, setVv] = useState(null);
+  useEffect(() => {
+    const vp = window.visualViewport;
+    if (!vp) return;
+    // Only while the keyboard is open (visible area clearly shorter than the window); otherwise the sheet keeps its
+    // plain full-screen position, so a wrong viewport offset can never push it off screen
+    const update = () =>
+      setVv(window.innerHeight - vp.height > 120 ? { h: vp.height, top: vp.offsetTop } : null);
+    update();
+    vp.addEventListener("resize", update);
+    vp.addEventListener("scroll", update);
+    return () => {
+      vp.removeEventListener("resize", update);
+      vp.removeEventListener("scroll", update);
+    };
+  }, []);
 
   const onKeyDown = (e) => {
     if (e.key === "Escape") {
@@ -46,8 +67,10 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
 
   return (
     <div
-      className="dialog-backdrop fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-5"
-      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+      className="dialog-backdrop fixed inset-x-0 top-0 z-50 flex h-dvh items-end justify-center overscroll-contain bg-black/40 sm:items-center sm:p-5"
+      style={vv ? { height: vv.h + "px", transform: "translateY(" + vv.top + "px)" } : undefined}
+      // Ignore taps in the first moment: the tap that opened the sheet must never close it (ghost mouse events on phones)
+      onMouseDown={(e) => e.target === e.currentTarget && Date.now() - openedAt.current > 500 && onClose()}
       onKeyDown={onKeyDown}
     >
       <form
@@ -55,7 +78,7 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-label="Görevi düzenle"
-        className="dialog-sheet w-full max-w-md rounded-t-3xl border border-[var(--line)] bg-[var(--surface)] px-5 pt-5 shadow-2xl sm:rounded-3xl"
+        className="dialog-sheet max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl border border-[var(--line)] bg-[var(--surface)] px-5 pt-5 shadow-2xl sm:rounded-3xl"
         style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -83,7 +106,7 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
             className={field + " w-full text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"}
           />
 
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5 [&>*]:min-w-0">
             <label className={field + " cursor-pointer"}>
               <span className="text-[var(--muted)]">
                 <CalendarIcon />
@@ -147,9 +170,9 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
           <div
             role="alertdialog"
             aria-label="Silme onayı"
-            className="mt-6 flex items-center gap-2"
+            className="mt-6 flex flex-wrap items-center gap-2"
           >
-            <p className="flex-1 text-sm">Bu görev silinsin mi?</p>
+            <p className="min-w-0 flex-1 basis-full text-sm sm:basis-0">Bu görev silinsin mi?</p>
             <button
               ref={cancelRef}
               type="button"
@@ -176,13 +199,13 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
               Sil
             </button>
             <span className="flex-1" aria-hidden="true"></span>
-            <button type="button" onClick={onClose} className="btn btn-ghost">
+            <button type="button" onClick={onClose} className="btn btn-ghost min-w-0">
               Vazgeç
             </button>
             <button
               type="submit"
               aria-disabled={!text}
-              className={"btn btn-solid " + (text ? "" : "opacity-40")}
+              className={"btn btn-solid min-w-0 " + (text ? "" : "opacity-40")}
             >
               Kaydet
             </button>
