@@ -43,8 +43,9 @@ jobs:
         run: npm run build
         env:
           VITE_BASE: ${{ steps.base.outputs.path }}
-          # Not a secret: it is shipped to the browser anyway. Add it under repository "Variables".
-          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID || vars.GOOGLE_CLIENT_ID }}
+          # Not secrets: the anon key is meant to be public (Row Level Security protects the data).
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
 
       - uses: actions/upload-pages-artifact@v3
         with:
