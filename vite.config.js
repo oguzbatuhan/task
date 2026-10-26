@@ -20,7 +20,7 @@ export default defineConfig({
         name: "Görevler",
         short_name: "Görevler",
         description:
-          "Tarihe göre gruplanan, Google Drive ile eşitlenebilen yapılacaklar listesi.",
+          "Tarihe göre gruplanan, Google ile giriş yapıp Supabase'e yedeklenebilen yapılacaklar listesi.",
         lang: "tr",
         start_url: base,
         scope: base,

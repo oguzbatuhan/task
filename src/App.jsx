@@ -5,7 +5,7 @@ import Composer from "./components/Composer.jsx";
 import SyncBar from "./components/SyncBar.jsx";
 import EditDialog from "./components/EditDialog.jsx";
 import SortableList from "./components/SortableList.jsx";
-import { useDriveSync } from "./hooks/useDriveSync.js";
+import { useCloudSync } from "./hooks/useCloudSync.js";
 import { groupLabel, toIso } from "./lib/dates.js";
 import { STORAGE_KEY, loadTasks, newTask } from "./lib/tasks.js";
 
@@ -16,9 +16,9 @@ export default function App() {
   // How many past days (that have tasks) are shown under the list
   const [pastLimit, setPastLimit] = useState(PAST_PAGE_DAYS);
   const [tasks, setTasks] = useState(loadTasks);
-  const sync = useDriveSync(tasks, setTasks);
+  const sync = useCloudSync(tasks, setTasks);
 
-  // Local copy: tasks are kept in this browser even when not connected to Drive
+  // Local copy: tasks are kept in this browser even when not connected to the cloud backup
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));

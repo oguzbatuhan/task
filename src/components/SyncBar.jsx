@@ -14,9 +14,9 @@ function timeText(ms) {
   return new Date(ms).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 }
 
-// Drive sync chip for the top-right corner of the header; the menu holds the actions
+// Cloud backup chip for the top-right corner of the header; the menu holds the actions
 export default function SyncBar({ sync }) {
-  const { configured, connected, status, lastSynced, error, connect, disconnect, syncNow } = sync;
+  const { configured, connected, status, lastSynced, error, email, connect, disconnect, syncNow } = sync;
   const [menu, setMenu] = useState(false);
   const box = useRef(null);
 
@@ -38,7 +38,7 @@ export default function SyncBar({ sync }) {
     return (
       <button type="button" onClick={connect} className={pill + pillAccent}>
         <CloudIcon />
-        Drive’a bağlan
+        Google ile bağlan
       </button>
     );
   }
@@ -50,7 +50,7 @@ export default function SyncBar({ sync }) {
           <AlertIcon />
           Yeniden bağlan
         </button>
-        <button type="button" onClick={disconnect} aria-label="Drive bağlantısını kes" className="icon-btn">
+        <button type="button" onClick={disconnect} aria-label="Bağlantıyı kes" className="icon-btn">
           <UnlinkIcon />
         </button>
       </div>
@@ -59,7 +59,7 @@ export default function SyncBar({ sync }) {
 
   const syncing = status === "syncing";
   const failed = status === "error";
-  const label = failed ? "Hata" : syncing ? "Eşitleniyor" : lastSynced ? timeText(lastSynced) : "Drive";
+  const label = failed ? "Hata" : syncing ? "Eşitleniyor" : lastSynced ? timeText(lastSynced) : "Yedek";
 
   return (
     <div className="relative" ref={box}>
@@ -67,7 +67,7 @@ export default function SyncBar({ sync }) {
         type="button"
         aria-haspopup="menu"
         aria-expanded={menu}
-        aria-label="Google Drive eşitleme"
+        aria-label="Bulut yedekleme"
         onClick={() => setMenu((v) => !v)}
         className={pill + (failed ? pillWarn : pillNeutral)}
       >
@@ -84,12 +84,10 @@ export default function SyncBar({ sync }) {
           role="menu"
           className="absolute right-0 top-full z-20 mt-2 w-56 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-1.5 shadow-xl"
         >
-          <p className="px-3 pb-1.5 pt-2 text-xs text-[var(--muted)]">
+          <p className="break-all px-3 pb-1.5 pt-2 text-xs text-[var(--muted)]">
             {failed && error
               ? error
-              : lastSynced
-                ? "Google Drive · son eşitleme " + timeText(lastSynced)
-                : "Google Drive"}
+              : (email || "Google hesabı") + (lastSynced ? " · son eşitleme " + timeText(lastSynced) : "")}
           </p>
           <button
             type="button"
