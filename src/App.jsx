@@ -1,20 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronIcon } from "./components/Icons.jsx";
 import { DoneHead, GroupHead, TaskRow } from "./components/TaskRow.jsx";
+import { HistoryButton, HistoryDay, HistorySheet, MonthHead } from "./components/History.jsx";
 import Composer from "./components/Composer.jsx";
 import SyncBar from "./components/SyncBar.jsx";
 import EditDialog from "./components/EditDialog.jsx";
 import SortableList from "./components/SortableList.jsx";
 import { useCloudSync } from "./hooks/useCloudSync.js";
 import { groupLabel, toIso } from "./lib/dates.js";
+import { groupByMonth } from "./lib/history.js";
 import { STORAGE_KEY, loadTasks, newTask } from "./lib/tasks.js";
 
-const PAST_PAGE_DAYS = 14;
+const HISTORY_PAGE_DAYS = 30;
 
 export default function App() {
   const [today, setToday] = useState(() => toIso(new Date()));
-  // How many past days (that have tasks) are shown under the list
-  const [pastLimit, setPastLimit] = useState(PAST_PAGE_DAYS);
+  // History drawer: closed by default; which days are open and how many days are loaded
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLimit, setHistoryLimit] = useState(HISTORY_PAGE_DAYS);
+  const [openDays, setOpenDays] = useState(() => new Set());
   const [tasks, setTasks] = useState(loadTasks);
   const sync = useCloudSync(tasks, setTasks);
 
@@ -38,7 +41,6 @@ export default function App() {
       document.removeEventListener("visibilitychange", check);
     };
   }, []);
-  useEffect(() => setPastLimit(PAST_PAGE_DAYS), [today]);
 
   // Tasks per date, in manual order. Completed tasks stay in their day.
   const byDate = useMemo(() => {
@@ -61,14 +63,50 @@ export default function App() {
     () => dates.filter((d) => d >= today),
     [dates, today],
   );
-  // Past days: only days that have tasks, newest first, shown in pages
+  // Past days: only days that have tasks, newest first. They live behind the history button.
   const allPast = useMemo(
     () => dates.filter((d) => d < today).reverse(),
     [dates, today],
   );
-  const pastDates = allPast.slice(0, pastLimit);
   const hasPast = allPast.length > 0;
-  const canGoOlder = allPast.length > pastLimit;
+
+  // Opening starts fresh: newest day open, first page of days
+  const openHistory = () => {
+    setOpenDays(new Set(allPast.length ? [allPast[0]] : []));
+    setHistoryLimit(HISTORY_PAGE_DAYS);
+    setHistoryOpen(true);
+  };
+  const toggleDay = (date) =>
+    setOpenDays((prev) => {
+      const next = new Set(prev);
+      next.has(date) ? next.delete(date) : next.add(date);
+      return next;
+    });
+  // Nothing left in the past (e.g. the last task was deleted): close the drawer
+  useEffect(() => {
+    if (!hasPast) setHistoryOpen(false);
+  }, [hasPast]);
+
+  const pastMonths = useMemo(
+    () =>
+      historyOpen
+        ? groupByMonth(
+            allPast.slice(0, historyLimit).map((date) => ({ date })),
+            today,
+          )
+        : [],
+    [historyOpen, allPast, historyLimit, today],
+  );
+  const pastStats = (list) => {
+    let total = 0;
+    let done = 0;
+    for (const d of list) {
+      const all = byDate.get(d) || [];
+      total += all.length;
+      done += all.filter((t) => t.done).length;
+    }
+    return { total, done };
+  };
 
   const todayItems = byDate.get(today) || [];
   const todayDone = todayItems.filter((t) => t.done).length;
@@ -220,6 +258,8 @@ export default function App() {
     );
   };
 
+  const allStats = historyOpen ? pastStats(allPast) : { total: 0, done: 0 };
+
   return (
     <main className="mx-auto w-full max-w-md">
       <header className="mb-8 flex items-start justify-between gap-3">
@@ -247,21 +287,72 @@ export default function App() {
         ) : null}
 
         {hasPast ? (
-          <div className="flex flex-col gap-9">
-            {pastDates.map(renderDay)}
-            {canGoOlder ? (
-              <button
-                type="button"
-                onClick={() => setPastLimit((n) => n + PAST_PAGE_DAYS)}
-                className="btn btn-ghost btn-sm mx-auto gap-1.5"
-              >
-                Daha eski günler
-                <ChevronIcon dir="down" />
-              </button>
-            ) : null}
+          <div className="flex justify-center">
+            <HistoryButton count={allPast.length} onClick={openHistory} />
           </div>
         ) : null}
       </div>
+
+      {historyOpen && hasPast ? (
+        <HistorySheet
+          summary={allPast.length + " gün · " + allStats.done + "/" + allStats.total + " tamamlandı"}
+          onClose={() => setHistoryOpen(false)}
+        >
+          {pastMonths.map((m) => {
+            const st = pastStats(m.days.map((d) => d.date));
+            return (
+              <div key={m.key}>
+                <MonthHead label={m.label} meta={st.done + "/" + st.total} />
+                {m.days.map(({ date }) => {
+                  const all = byDate.get(date) || [];
+                  const pending = all.filter((t) => !t.done);
+                  const completed = all.filter((t) => t.done);
+                  const label = groupLabel(date, today);
+                  return (
+                    <HistoryDay
+                      key={date}
+                      primary={label.primary}
+                      secondary={label.secondary}
+                      meta={completed.length + "/" + all.length}
+                      open={openDays.has(date)}
+                      onToggle={() => toggleDay(date)}
+                    >
+                      {/* Pending and completed tasks are separate lists, so a task that is ticked off here moves
+                          between them exactly like in the main list */}
+                      {pending.length > 0 ? (
+                        <ul>
+                          {pending.map((t) => (
+                            <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} />
+                          ))}
+                        </ul>
+                      ) : null}
+                      {completed.length > 0 ? (
+                        <ul>
+                          {completed.map((t) => (
+                            <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} />
+                          ))}
+                        </ul>
+                      ) : null}
+                    </HistoryDay>
+                  );
+                })}
+              </div>
+            );
+          })}
+          {allPast.length > historyLimit ? (
+            <div className="flex justify-center py-5">
+              <button
+                type="button"
+                onClick={() => setHistoryLimit((n) => n + HISTORY_PAGE_DAYS)}
+                className="btn btn-ghost btn-sm"
+              >
+                Daha eski günler
+              </button>
+            </div>
+          ) : null}
+        </HistorySheet>
+      ) : null}
+
       {editing ? (
         <EditDialog
           task={editing}

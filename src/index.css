@@ -256,3 +256,28 @@
 .dialog-sheet {
   animation: dialog-rise 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+
+/* History drawer: backdrop fades in; the panel rises on phones and slides in from the right on larger screens */
+@keyframes history-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes history-rise {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes history-slide {
+  from { opacity: 0; transform: translateX(36px); }
+  to { opacity: 1; transform: none; }
+}
+.history-backdrop { animation: history-fade 0.18s ease-out; }
+.history-panel { animation: history-rise 0.26s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (min-width: 640px) {
+  .history-panel { animation-name: history-slide; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .history-backdrop,
+  .history-panel {
+    animation: none !important;
+  }
+}

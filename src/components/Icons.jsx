@@ -154,3 +154,12 @@ export function CloseIcon() {
     </svg>
   );
 }
+
+// Clock with a counter-clockwise arrow: the history button
+export function HistoryIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 18 18" {...base}>
+      <path d="M3 9a6 6 0 101.9-4.4M3 3v3h3M9 5.8V9l2.2 1.4" strokeWidth="1.5" {...stroke} />
+    </svg>
+  );
+}

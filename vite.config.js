@@ -27,7 +27,7 @@ export default defineConfig({
         display: "standalone",
         background_color: "#0c1216",
         // Fallback only; the <meta name="theme-color"> tags in index.html follow light/dark mode
-        theme_color: "#f6f7f8",
+        theme_color: "#0c1216",
         icons: [
           { src: "icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "icon-512.png", sizes: "512x512", type: "image/png" },
