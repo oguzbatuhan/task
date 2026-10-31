@@ -1,18 +1,35 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckIcon, ChevronIcon, ClockIcon, TrashIcon } from "./Icons.jsx";
+import { CheckIcon, ChevronIcon, ClockIcon, RepeatIcon, TrashIcon } from "./Icons.jsx";
 import { shortDate } from "../lib/dates.js";
 
-// Date heading: the day on the left, "done/total" on the right
-export function GroupHead({ primary, secondary, count }) {
+// Date heading: day on the left, count on the right; thin progress under
+export function GroupHead({ primary, secondary, count, progress }) {
+  const total = progress?.total ?? 0;
+  const done = progress?.done ?? 0;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const allDone = total > 0 && done === total;
+
   return (
-    <h2 className="flex items-baseline gap-2 border-b border-[var(--line-strong)] pb-2 text-sm">
-      <span className="font-medium">{primary}</span>
-      {secondary ? (
-        <span className="text-[var(--muted)]">{secondary}</span>
+    <div className="pb-2">
+      <h2 className="flex items-baseline gap-2 text-sm">
+        <span className="font-medium">{primary}</span>
+        {secondary ? (
+          <span className="min-w-0 truncate text-[var(--muted)]">{secondary}</span>
+        ) : null}
+        <span className="flex-1" aria-hidden="true"></span>
+        <span className={"tabular text-sm " + (allDone ? "text-[var(--accent)]" : "text-[var(--muted)]")}>
+          {count}
+        </span>
+      </h2>
+      {total > 0 ? (
+        <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--line)]">
+          <div
+            className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
+            style={{ width: pct + "%", opacity: allDone ? 1 : 0.8 }}
+          />
+        </div>
       ) : null}
-      <span className="flex-1" aria-hidden="true"></span>
-      <span className="tabular font-medium">{count}</span>
-    </h2>
+    </div>
   );
 }
 
@@ -31,13 +48,9 @@ export function DoneHead({ count, open, onToggle }) {
       type="button"
       onClick={onToggle}
       aria-expanded={open}
-      className="mt-3 flex w-full items-center gap-1.5 rounded-lg py-1 text-xs font-medium text-[var(--muted)] hover:text-[var(--fg)]"
+      className="mt-2 flex w-full items-center gap-1.5 rounded-lg py-1.5 text-xs font-medium text-[var(--muted)] hover:text-[var(--fg)]"
     >
-      <span
-        className={
-          "inline-flex transition-transform " + (open ? "" : "-rotate-90")
-        }
-      >
+      <span className={"inline-flex transition-transform " + (open ? "" : "-rotate-90")}>
         <ChevronIcon dir="down" />
       </span>
       Tamamlananlar
@@ -49,7 +62,7 @@ export function DoneHead({ count, open, onToggle }) {
 const CONFIRM_MS = 5000;
 
 // Tapping a task opens a framed info area (day, time, Düzenle, Sil). Düzenle opens the edit sheet.
-export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove }) {
+export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, dateLabel }) {
   // onOpen: old prop name, so an App.jsx that was not updated still opens the editor
   const edit = onEdit || onOpen;
   // A long press (drag to reorder) or a move (scroll) must not open the info area
@@ -129,14 +142,13 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove }) 
   const checked = task.done || phase !== "idle";
 
   const dragging = sortable && sortable.dragging;
-  const base = "relative -mx-2 rounded-xl border px-2 text-sm ";
   const cls =
-    base +
+    "relative text-sm " +
     (dragging
-      ? "z-10 border-[var(--line-strong)] bg-[var(--surface)] shadow-lg "
+      ? "z-10 rounded-lg bg-[var(--surface)] shadow-md "
       : isOpen
-        ? "border-[var(--line-strong)] bg-[var(--surface)] transition-colors "
-        : "border-transparent transition-colors hover:bg-[var(--hover)] ") +
+        ? "rounded-lg bg-[var(--hover)] "
+        : "rounded-lg hover:bg-[var(--hover)] ") +
     (phase === "fading" ? "task-out " : "") +
     (task.done ? "task-in " : "") +
     (sortable
@@ -163,7 +175,7 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove }) 
       onContextMenu={sortable ? sortable.onContextMenu : undefined}
       className={cls}
     >
-      <div className="flex min-h-[3.25rem] items-center gap-3">
+      <div className="flex min-h-12 items-center gap-3 px-1">
       <button
         type="button"
         role="checkbox"
@@ -196,7 +208,7 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove }) 
         }}
         aria-expanded={isOpen}
         aria-label={"Ayrıntılar: " + task.title + (task.time ? ", saat " + task.time : "")}
-        className="flex min-w-0 flex-1 cursor-pointer flex-col justify-center self-stretch py-2.5"
+        className="flex min-w-0 flex-1 cursor-pointer flex-col justify-center self-stretch py-2"
       >
         <p
           className={
@@ -208,35 +220,49 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove }) 
         >
           {task.title}
         </p>
-        {task.time ? (
+        {task.time || dateLabel || task.ruleId ? (
           <p
             className={
-              "tabular mt-0.5 inline-flex items-center gap-1 self-start text-xs font-medium " +
-              (checked ? "text-[var(--muted)] opacity-60" : "text-[var(--accent)]")
+              "tabular mt-0.5 inline-flex items-center gap-1.5 self-start text-xs font-medium " +
+              (checked
+                ? "text-[var(--muted)] opacity-60"
+                : dateLabel
+                  ? "text-[var(--warn)]"
+                  : "text-[var(--accent)]")
             }
           >
-            <ClockIcon />
-            {task.time}
+            {dateLabel ? <span>{dateLabel}</span> : null}
+            {task.time ? (
+              <span className="inline-flex items-center gap-1">
+                <ClockIcon />
+                {task.time}
+              </span>
+            ) : null}
+            {task.ruleId ? (
+              <span className="inline-flex items-center" role="img" aria-label="Tekrarlayan görev" title="Tekrarlayan görev">
+                <RepeatIcon />
+              </span>
+            ) : null}
           </p>
         ) : null}
       </div>
       </div>
 
       {isOpen ? (
-        <div className="task-in flex min-h-[2.5rem] items-center gap-2 pb-3 pl-8">
+        <div className="task-in flex items-center gap-3 pb-2.5 pl-9 pr-1">
           {mode === "confirm" ? (
-            <div role="alertdialog" aria-label={"Silme onayı: " + task.title} className="flex w-full flex-wrap items-center justify-end gap-2">
-              <span className="min-w-0 flex-1 text-sm">Silinsin mi?</span>
-              <button ref={cancelRef} type="button" onClick={() => setMode("open")} className="btn btn-ghost btn-sm">
+            <div role="alertdialog" aria-label={"Silme onayı: " + task.title} className="flex w-full items-center gap-3">
+              <span className="min-w-0 flex-1 text-sm text-[var(--muted)]">Silinsin mi?</span>
+              <button ref={cancelRef} type="button" onClick={() => setMode("open")} className="link-btn">
                 Vazgeç
               </button>
-              <button type="button" onClick={() => onRemove(task.id)} className="btn btn-warn btn-sm">
+              <button type="button" onClick={() => onRemove(task.id)} className="link-btn text-[var(--warn)] hover:text-[var(--warn)]">
                 Sil
               </button>
             </div>
           ) : (
             <>
-              <span className="tabular min-w-0 flex-1 truncate text-sm text-[var(--muted)]">
+              <span className="tabular min-w-0 flex-1 truncate text-xs text-[var(--muted)]">
                 {shortDate(task.date)}
                 {task.time ? " · " + task.time : ""}
               </span>
@@ -246,7 +272,7 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove }) 
                   setMode("closed");
                   edit(task.id);
                 }}
-                className="btn btn-ghost btn-sm"
+                className="link-btn"
               >
                 Düzenle
               </button>
@@ -254,9 +280,8 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove }) 
                 ref={delRef}
                 type="button"
                 onClick={() => setMode("confirm")}
-                className="btn btn-sm min-w-0 gap-1.5 border-[var(--line-strong)] text-[var(--warn)] hover:bg-[var(--hover)]"
+                className="link-btn text-[var(--warn)] hover:text-[var(--warn)]"
               >
-                <TrashIcon />
                 Sil
               </button>
             </>

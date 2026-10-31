@@ -2,6 +2,14 @@
 
 React + Tailwind CSS ile yapılmış yapılacaklar listesi (kullanıcıya görünen adı **Görevler**, teknik adı `task`). Görevler tarihlerine göre gruplanır. Tamamlanan görev silinmez, kendi gününde üstü çizili ve soluk kalır. Bugün ve sonrası ana listede görünür; geçmiş günler küçük **Geçmiş** düğmesinin arkasında gizlidir (telefonda alttan açılan sayfa, geniş ekranda sağ panel). İçeride yalnızca görevi olan günler en yeniden en eskiye, aylara ayrılmış sıralanır; en yeni gün açık başlar, diğerleri tek satırdır (gün ve tamamlanan/toplam). 30 günden eskisi için "Daha eski günler" düğmesi vardır. Her göreve istenirse bir saat eklenebilir (ekleme çubuğundaki **Saat ekle** düğmesi). Bir göreve dokununca açılan pencerede adı, günü ve saati değiştirilebilir ya da görev silinebilir. Veriler tarayıcıda saklanır, istersen Google ile giriş yapıp Supabase'e yedeklenir ve cihazlar arasında eşitlenir. GitHub Actions her `main` güncellemesinde siteyi GitHub Pages'e yayınlar.
 
+### Kullanım ipuçları
+
+- **Hızlı ekleme:** başlığa `yarın`, `bugün` ve `14:30` gibi bir saat yazabilirsin; örn. `yarın 14:30 rapor` → "rapor", yarın, 14:30. Yalnızca başta/sonda yazılan gün sözcüğü ve `SS:DD` saati okunur.
+- **Geciken:** önceki günlerden tamamlanmamış görevler ana listenin en üstünde görünür; **Hepsini bugüne taşı** ile tek dokunuşta bugüne alınır (Geri al ile iptal edilebilir).
+- **Tekrarlayan görev:** ekleme çubuğundaki **Tekrarla** düğmesiyle haftanın belli günlerini seç (Pzt…Paz), ya da **Her gün**, **Hafta içi**, **Haftada X kez** kısayollarını kullan (X kez, günleri haftaya eşit yayar; istersen sonra tek tek değiştirirsin). Görev, seçilen tarihten itibaren o günlerde otomatik eklenir; önümüzdeki 14 gün hazır tutulur. Her tekrar normal bir görevdir (tamamlanır, ertelenir, silinir). Listenin altındaki **Tekrarlayanlar** düğmesinden ya da bir tekrarın düzenleme penceresindeki **Tekrarı düzenle**'den ad, saat ve günler değiştirilir; değişiklik bugünden sonraki tamamlanmamış tekrarlara uygulanır, geçmiş ve tamamlananlar değişmez. Tekrarı silince bugünden sonraki tamamlanmamış tekrarlar da silinir.
+- **Geri al:** silinen görev için altta çıkan mesajdan geri alınabilir.
+- **Klavye:** `n` veya `/` yeni görev alanına gider.
+
 ## Yerelde çalıştırma
 
 ```bash
@@ -26,7 +34,7 @@ Tabloyu başka bir adla açtıysan `VITE_SUPABASE_TABLE` ile adını ver.
 
 ### Eşitleme nasıl çalışır
 
-- Görevler Supabase'deki ortak `app_backups` tablosuna `app = task` satırı olarak yazılır; Günlük ve Akış'ın satırlarına dokunulmaz. Giriş Google ile yapılır.
+- Görevler ve tekrarlayan görev kuralları Supabase'deki ortak `app_backups` tablosuna `app = task` satırı olarak yazılır (eski yedeklerde kural yoktur, sorun olmaz); Günlük ve Akış'ın satırlarına dokunulmaz. Giriş Google ile yapılır.
 - Aynı görev iki cihazda değiştiyse en son değiştirilen kazanır. Silinen görevler 30 gün boyunca silinmiş olarak işaretli kalır, böylece silme diğer cihazlara da ulaşır.
 - Eşitleme, görev değiştikten bir saniye sonra ve sekmeye geri dönüldüğünde çalışır.
 - **Bağlantıyı kes** düğmesi yalnızca bu tarayıcıdaki oturumu kapatır. Supabase'deki yedek durur.

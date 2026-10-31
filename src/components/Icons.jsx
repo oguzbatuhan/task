@@ -163,3 +163,20 @@ export function HistoryIcon() {
     </svg>
   );
 }
+
+export function RepeatIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 18 18" {...base}>
+      <path d="M3 8V7a3 3 0 013-3h7.5M11.5 1.8L14 4l-2.5 2.2M15 10v1a3 3 0 01-3 3H4.5M6.5 16.2L4 14l2.5-2.2" {...stroke} strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+export function SearchIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 18 18" {...base}>
+      <circle cx="8" cy="8" r="5.25" strokeWidth="1.5" {...stroke} />
+      <path d="M12.2 12.2L15.5 15.5" strokeWidth="1.5" {...stroke} />
+    </svg>
+  );
+}

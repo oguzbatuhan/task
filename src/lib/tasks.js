@@ -13,8 +13,9 @@ export function uid() {
 // time: optional "HH:MM" (24h) or "" when the task has no set time
 export const isValidTime = (v) => typeof v === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
 
+// ruleId: set on tasks that a recurring rule created ("" for ordinary tasks)
 export function newTask(title, date, order = 0, time = "") {
-  return { id: uid(), title, date, time: isValidTime(time) ? time : "", done: false, deleted: false, updatedAt: Date.now(), order };
+  return { id: uid(), title, date, time: isValidTime(time) ? time : "", done: false, deleted: false, updatedAt: Date.now(), order, ruleId: "" };
 }
 
 export function normalizeTasks(list) {
@@ -30,6 +31,7 @@ export function normalizeTasks(list) {
       deleted: Boolean(t.deleted),
       updatedAt: Number(t.updatedAt) || 0,
       order: Number(t.order) || 0,
+      ruleId: typeof t.ruleId === "string" ? t.ruleId : "",
     }));
 }
 

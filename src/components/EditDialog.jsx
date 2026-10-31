@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarIcon, ClockIcon, CloseIcon } from "./Icons.jsx";
+import { CalendarIcon, ClockIcon, CloseIcon, RepeatIcon } from "./Icons.jsx";
+import DayPicker from "./DayPicker.jsx";
 import { shortDate } from "../lib/dates.js";
 
 const field =
   "relative flex h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--line-strong)] bg-[var(--bg)] px-3.5 text-base transition-colors focus-within:border-[var(--accent)] sm:text-[0.9375rem]";
 
-// Bottom sheet on phones, centered card on larger screens: edit title, day and time, or delete
-export default function EditDialog({ task, onSave, onDelete, onClose }) {
+// Bottom sheet on phones, centered card on larger screens: edit title, day and time, or delete.
+// mode "rule": edits a recurring rule instead (title, time and weekdays; no single date).
+// ruleInfo / onEditRule: shown for a task made by a rule, with a button that opens that rule.
+export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditRule, onSave, onDelete, onClose }) {
+  const isRule = mode === "rule";
+  const [days, setDays] = useState(task.days || []);
   const [title, setTitle] = useState(task.title);
   const [date, setDate] = useState(task.date);
   const [time, setTime] = useState(task.time || "");
@@ -62,6 +67,10 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
   function submit(e) {
     e.preventDefault();
     if (!text) return inputRef.current && inputRef.current.focus();
+    if (isRule) {
+      if (days.length === 0) return;
+      return onSave(task.id, { title: text, time, days });
+    }
     onSave(task.id, { title: text, date, time });
   }
 
@@ -77,12 +86,12 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
         onSubmit={submit}
         role="dialog"
         aria-modal="true"
-        aria-label="Görevi düzenle"
+        aria-label={isRule ? "Tekrarlayan görevi düzenle" : "Görevi düzenle"}
         className="dialog-sheet max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl border border-[var(--line)] bg-[var(--surface)] px-5 pt-5 shadow-2xl sm:rounded-3xl"
         style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-medium">Görevi düzenle</h2>
+          <h2 className="text-base font-medium">{isRule ? "Tekrarlayan görevi düzenle" : "Görevi düzenle"}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -106,7 +115,8 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
             className={field + " w-full text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"}
           />
 
-          <div className="grid grid-cols-2 gap-2.5 [&>*]:min-w-0">
+          <div className={"grid gap-2.5 [&>*]:min-w-0 " + (isRule ? "grid-cols-1" : "grid-cols-2")}>
+            {isRule ? null : (
             <label className={field + " cursor-pointer"}>
               <span className="text-[var(--muted)]">
                 <CalendarIcon />
@@ -125,6 +135,7 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
                 className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
               />
             </label>
+            )}
 
             <div className={field + " cursor-pointer pr-2"}>
               <span className="text-[var(--muted)]">
@@ -164,6 +175,25 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
               ) : null}
             </div>
           </div>
+
+          {isRule ? (
+            <div className="mt-1">
+              <DayPicker days={days} onChange={setDays} />
+              <p className="mt-2 text-xs text-[var(--muted)]">
+                Değişiklikler bugünden itibaren, tamamlanmamış tekrarlara uygulanır. Geçmiş ve tamamlanan görevler değişmez.
+              </p>
+            </div>
+          ) : ruleInfo ? (
+            <div className="flex items-center gap-2 rounded-xl border border-[var(--line)] px-3.5 py-2.5 text-sm">
+              <span className="text-[var(--accent)]">
+                <RepeatIcon />
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[var(--muted)]">{ruleInfo}</span>
+              <button type="button" onClick={onEditRule} className="btn btn-ghost btn-sm">
+                Tekrarı düzenle
+              </button>
+            </div>
+          ) : null}
         </div>
 
         {confirming ? (
@@ -172,7 +202,9 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
             aria-label="Silme onayı"
             className="mt-6 flex flex-wrap items-center gap-2"
           >
-            <p className="min-w-0 flex-1 basis-full text-sm sm:basis-0">Bu görev silinsin mi?</p>
+            <p className="min-w-0 flex-1 basis-full text-sm sm:basis-0">
+              {isRule ? "Tekrarlayan görev silinsin mi? Bugünden sonraki tamamlanmamış tekrarlar da silinir." : "Bu görev silinsin mi?"}
+            </p>
             <button
               ref={cancelRef}
               type="button"
@@ -204,8 +236,8 @@ export default function EditDialog({ task, onSave, onDelete, onClose }) {
             </button>
             <button
               type="submit"
-              aria-disabled={!text}
-              className={"btn btn-solid min-w-0 " + (text ? "" : "opacity-40")}
+              aria-disabled={!text || (isRule && days.length === 0)}
+              className={"btn btn-solid min-w-0 " + (text && (!isRule || days.length) ? "" : "opacity-40")}
             >
               Kaydet
             </button>

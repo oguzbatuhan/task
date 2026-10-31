@@ -10,6 +10,7 @@ import {
   uploadData,
 } from "../lib/supabase.js";
 import { mergeTasks, normalizeTasks, sameTasks, sortById } from "../lib/tasks.js";
+import { mergeRules, normalizeRules } from "../lib/repeat.js";
 
 const FLAG_KEY = "task-cloud-connected";
 const DEBOUNCE_MS = 1200;
@@ -30,7 +31,7 @@ const writeFlag = (on) => {
 };
 
 // status: "off" | "syncing" | "synced" | "needs-auth" | "error"
-export function useCloudSync(tasks, setTasks) {
+export function useCloudSync(tasks, setTasks, rules, setRules) {
   const initiallyConnected = cloudConfigured && readFlag();
   const [connected, setConnected] = useState(initiallyConnected);
   const [status, setStatus] = useState(initiallyConnected ? "syncing" : "off");
@@ -40,6 +41,8 @@ export function useCloudSync(tasks, setTasks) {
 
   const tasksRef = useRef(tasks);
   tasksRef.current = tasks;
+  const rulesRef = useRef(rules);
+  rulesRef.current = rules;
   const connectedRef = useRef(initiallyConnected);
   const running = useRef(false);
   const rerun = useRef(false);
@@ -63,13 +66,18 @@ export function useCloudSync(tasks, setTasks) {
       const remoteTasks = normalizeTasks(remote?.tasks);
       const local = tasksRef.current;
       const merged = mergeTasks(local, remoteTasks);
+      // Recurring rules travel in the same backup (older backups have none)
+      const remoteRules = normalizeRules(remote?.rules);
+      const localRules = rulesRef.current;
+      const mergedRules = mergeRules(localRules, remoteRules);
 
-      if (!sameTasks(sortById(local), merged)) {
-        skipNext.current = true;
-        setTasks(merged);
-      }
-      if (!remote || !sameTasks(sortById(remoteTasks), merged)) {
-        await uploadData({ version: 1, tasks: merged });
+      const tasksChanged = !sameTasks(sortById(local), merged);
+      const rulesChanged = !sameTasks(mergeRules(localRules, []), mergedRules);
+      if (tasksChanged || rulesChanged) skipNext.current = true;
+      if (tasksChanged) setTasks(merged);
+      if (rulesChanged) setRules(mergedRules);
+      if (!remote || !sameTasks(sortById(remoteTasks), merged) || !sameTasks(mergeRules(remoteRules, []), mergedRules)) {
+        await uploadData({ version: 2, tasks: merged, rules: mergedRules });
       }
       setStatus("synced");
       setLastSynced(Date.now());
@@ -91,7 +99,7 @@ export function useCloudSync(tasks, setTasks) {
         run();
       }
     }
-  }, [setTasks]);
+  }, [setTasks, setRules]);
 
   // Sync shortly after tasks change
   useEffect(() => {
@@ -102,7 +110,7 @@ export function useCloudSync(tasks, setTasks) {
     if (!connectedRef.current) return;
     const id = setTimeout(run, DEBOUNCE_MS);
     return () => clearTimeout(id);
-  }, [tasks, run]);
+  }, [tasks, rules, run]);
 
   // On startup (also right after returning from the Google sign-in page): sync if previously connected.
   // Supabase finishes the sign-in code exchange inside getSession(), so run() simply waits for it.
