@@ -32,17 +32,17 @@
 /* Forced dark theme — black & gray only (no blue/teal) */
 :root {
   --bg: #0a0a0a;
-  --surface: #141414;
-  --fg: #ececec;
-  --muted: #8c8c8c;
-  --line: #222222;
-  --line-strong: #333333;
-  --accent: #e6e6e6;
+  --surface: #171717;
+  --fg: #f0f0f0;
+  --muted: #9a9a9a;
+  --line: #2c2c2c;
+  --line-strong: #3a3a3a;
+  --accent: #f0f0f0;
   --accent-fg: #0a0a0a;
-  --accent-soft: #1c1c1c;
-  --warn: #c47a6e;
-  --hover: rgba(255, 255, 255, 0.06);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --accent-soft: #242424;
+  --warn: #b87f72;
+  --hover: rgba(255, 255, 255, 0.07);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
   --font: "Geist Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
   color-scheme: dark;
 }
@@ -64,7 +64,7 @@
     padding-left: max(20px, env(safe-area-inset-left, 0px));
     padding-right: max(20px, env(safe-area-inset-right, 0px));
     -webkit-font-smoothing: antialiased;
-    background-image: radial-gradient(50rem 18rem at 50% -10rem, #161616, transparent 70%);
+    background-image: radial-gradient(50rem 18rem at 50% -10rem, #1a1a1a, transparent 70%);
     background-repeat: no-repeat;
   }
   :focus-visible {
