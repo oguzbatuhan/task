@@ -12,6 +12,8 @@ const field =
 export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditRule, onSave, onDelete, onClose }) {
   const isRule = mode === "rule";
   const [days, setDays] = useState(task.days || []);
+  const [count, setCount] = useState(task.count || 0);
+  const hasRepeat = days.length > 0;
   const [title, setTitle] = useState(task.title);
   const [date, setDate] = useState(task.date);
   const [time, setTime] = useState(task.time || "");
@@ -68,8 +70,8 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
     e.preventDefault();
     if (!text) return inputRef.current && inputRef.current.focus();
     if (isRule) {
-      if (days.length === 0) return;
-      return onSave(task.id, { title: text, time, days });
+      if (!hasRepeat) return;
+      return onSave(task.id, { title: text, time, days, count });
     }
     onSave(task.id, { title: text, date, time });
   }
@@ -178,7 +180,14 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
 
           {isRule ? (
             <div className="mt-1">
-              <DayPicker days={days} onChange={setDays} />
+              <DayPicker
+                days={days}
+                count={count}
+                onChange={(d, n) => {
+                  setDays(d);
+                  setCount(n);
+                }}
+              />
               <p className="mt-2 text-xs text-[var(--muted)]">
                 Değişiklikler bugünden itibaren, tamamlanmamış tekrarlara uygulanır. Geçmiş ve tamamlanan görevler değişmez.
               </p>
@@ -236,8 +245,8 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
             </button>
             <button
               type="submit"
-              aria-disabled={!text || (isRule && days.length === 0)}
-              className={"btn btn-solid min-w-0 " + (text && (!isRule || days.length) ? "" : "opacity-40")}
+              aria-disabled={!text || (isRule && !hasRepeat)}
+              className={"btn btn-solid min-w-0 " + (text && (!isRule || hasRepeat) ? "" : "opacity-40")}
             >
               Kaydet
             </button>

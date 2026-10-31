@@ -7,10 +7,10 @@ import EditDialog from "./components/EditDialog.jsx";
 import SortableList from "./components/SortableList.jsx";
 import Toast from "./components/Toast.jsx";
 import { useCloudSync } from "./hooks/useCloudSync.js";
-import { groupLabel, relativeName, shortDate, toIso } from "./lib/dates.js";
+import { groupLabel, relativeName, shiftIso, shortDate, toIso } from "./lib/dates.js";
 import { groupByMonth } from "./lib/history.js";
 import { STORAGE_KEY, loadTasks, newTask } from "./lib/tasks.js";
-import { RULES_KEY, describeDays, loadRules, materialize, newRule, syncInstances } from "./lib/repeat.js";
+import { RULES_KEY, describeRule, loadRules, isBeyondWindow, materialize, newRule, nextOccurrence, syncInstances } from "./lib/repeat.js";
 import { RulesButton, RulesSheet } from "./components/RulesSheet.jsx";
 
 const HISTORY_PAGE_DAYS = 30;
@@ -65,7 +65,7 @@ export default function App() {
   const byDate = useMemo(() => {
     const map = new Map();
     for (const t of tasks) {
-      if (t.deleted) continue;
+      if (t.deleted || isBeyondWindow(t, today)) continue;
       if (!map.has(t.date)) map.set(t.date, []);
       map.get(t.date).push(t);
     }
@@ -75,7 +75,7 @@ export default function App() {
       );
     }
     return map;
-  }, [tasks]);
+  }, [tasks, today]);
 
   const dates = useMemo(() => [...byDate.keys()].sort(), [byDate]);
   const upcoming = useMemo(
@@ -148,11 +148,18 @@ export default function App() {
   const todayItems = byDate.get(today) || [];
   const todayDone = todayItems.filter((t) => t.done).length;
 
-  const add = (title, date, time = "", days = []) => {
+  const add = (title, date, time = "", days = [], count = 0) => {
     if (days.length > 0) {
-      const rule = newRule(title, days, date, time);
+      const rule = newRule(title, days, date, time, count);
       setRules((prev) => [...prev, rule]);
-      return; // the tasks themselves are created by the effect above
+      // the tasks themselves are created by the effect above (only for today and tomorrow)
+      const first = nextOccurrence(rule, today);
+      const later = first > shiftIso(today, 1);
+      setToast({
+        key: Date.now(),
+        message: "Tekrarlayan görev eklendi" + (later ? " · " + shortDate(first) + " günü görünecek" : ""),
+      });
+      return;
     }
     addOne(title, date, time);
   };
@@ -256,10 +263,10 @@ export default function App() {
     if (liveRules.length === 0) setRulesOpen(false);
   }, [liveRules.length]);
 
-  const saveRule = (id, { title, time, days }) => {
+  const saveRule = (id, { title, time, days, count }) => {
     const cur = rules.find((r) => r.id === id);
     if (!cur) return;
-    const next = { ...cur, title, time, days, updatedAt: Date.now() };
+    const next = { ...cur, title, time, days, count, updatedAt: Date.now() };
     setRules((prev) => prev.map((r) => (r.id === id ? next : r)));
     setTasks((prev) => syncInstances(prev, next, today));
     setEditingRuleId(null);
@@ -551,7 +558,7 @@ export default function App() {
       <Toast toast={toast} onClose={closeToast} />
 
       {rulesOpen && liveRules.length > 0 ? (
-        <RulesSheet rules={liveRules} onOpen={setEditingRuleId} onClose={() => setRulesOpen(false)} />
+        <RulesSheet rules={liveRules} today={today} onOpen={setEditingRuleId} onClose={() => setRulesOpen(false)} />
       ) : null}
 
       {editingRule ? (
@@ -568,7 +575,7 @@ export default function App() {
       {editing ? (
         <EditDialog
           task={editing}
-          ruleInfo={ruleOf(editing.ruleId) ? describeDays(ruleOf(editing.ruleId).days) : ""}
+          ruleInfo={ruleOf(editing.ruleId) ? describeRule(ruleOf(editing.ruleId)) : ""}
           onEditRule={() => {
             const rid = editing.ruleId;
             setEditingId(null);

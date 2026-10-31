@@ -1,21 +1,22 @@
 // Recurring tasks.
-// A rule ("every Mon, Wed, Fri") is stored separately from the tasks. The app turns it into ordinary tasks for the
-// coming days (see materialize). Every generated task gets the id "<ruleId>@<date>", so two devices that generate the
-// same day produce the very same task and the cloud merge never duplicates it.
+// A rule ("every Mon, Wed, Fri") is stored separately from the tasks. The app turns it into ordinary tasks only for
+// today and tomorrow (see materialize); later days are created when they come within that window, so the list never
+// shows recurring tasks further ahead. Every generated task gets the id "<ruleId>@<date>", so two devices that
+// generate the same day produce the very same task and the cloud merge never duplicates it.
+//
+// A rule repeats forever, or ends after `count` occurrences (count = 0 means forever). The occurrence number of a day is
+// computed from the rule (how many rule days lie between its start and that day), so nothing extra has to be stored
+// or synced to know when the rule ends.
 import { fromIso, shiftIso } from "./dates.js";
 import { isValidTime, newTask, uid } from "./tasks.js";
 
 export const RULES_KEY = "task-rules-v1";
-// How many days ahead (today included) tasks are created
-export const HORIZON_DAYS = 14;
+// How many days (today included) recurring tasks are created and shown for: today and tomorrow
+export const HORIZON_DAYS = 2;
 
 // Monday first, as in the Turkish calendar. Values are JS weekdays (0 = Sunday ... 6 = Saturday).
 export const WEEK = [1, 2, 3, 4, 5, 6, 0];
 export const DAY_SHORT = { 1: "Pzt", 2: "Sal", 3: "Çar", 4: "Per", 5: "Cum", 6: "Cmt", 0: "Paz" };
-
-// "Haftada X kez": spreads X days evenly over the week
-const PER_WEEK = { 1: [1], 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 4, 5], 6: [1, 2, 3, 4, 5, 6], 7: WEEK };
-export const daysForCount = (n) => [...(PER_WEEK[n] || [])];
 
 export const cleanDays = (days) =>
   WEEK.filter((d) => Array.isArray(days) && days.includes(d));
@@ -35,11 +36,42 @@ export const instanceId = (ruleId, date) => ruleId + "@" + date;
 // The day a generated task was created for (kept even if the task is moved to another day)
 export const instanceDate = (id) => (id.includes("@") ? id.split("@")[1] : "");
 
-export function newRule(title, days, start, time = "") {
+export const cleanCount = (n) => (Number.isInteger(n) && n >= 1 && n <= 999 ? n : 0);
+
+// Day of the count-th occurrence ("" when the rule is endless or has no days)
+export function lastDate(rule) {
+  if (!rule.count || !rule.days.length) return "";
+  let date = rule.start;
+  let n = 0;
+  for (;;) {
+    if (rule.days.includes(weekdayOf(date)) && ++n === rule.count) return date;
+    date = shiftIso(date, 1);
+  }
+}
+
+// How many occurrences the rule has had up to and including `date`
+export function occurrencesUntil(rule, date) {
+  if (!rule.days.length) return 0;
+  let n = 0;
+  for (let d = rule.start; d <= date; d = shiftIso(d, 1)) if (rule.days.includes(weekdayOf(d))) n++;
+  return n;
+}
+
+// The rule has produced its last occurrence and that day is over
+export const isEnded = (rule, today) => {
+  const last = lastDate(rule);
+  return Boolean(last) && last < today;
+};
+
+// "Pzt, Çar" / "Pzt, Çar · 10 kez"
+export const describeRule = (rule) => describeDays(rule.days) + (rule.count ? " · " + rule.count + " kez" : "");
+
+export function newRule(title, days, start, time = "", count = 0) {
   return {
     id: uid(),
     title,
     days: cleanDays(days),
+    count: cleanCount(count),
     time: isValidTime(time) ? time : "",
     start,
     deleted: false,
@@ -55,6 +87,7 @@ export function normalizeRules(list) {
       id: r.id,
       title: r.title,
       days: cleanDays(r.days),
+      count: cleanCount(r.count),
       time: isValidTime(r.time) ? r.time : "",
       start: r.start,
       deleted: Boolean(r.deleted),
@@ -85,6 +118,26 @@ export function loadRules() {
   }
 }
 
+// First day on or after `from` (and on or after the rule's start) on which the rule applies; "" if it has no days
+export function nextOccurrence(rule, from) {
+  if (!rule.days.length) return "";
+  const begin = rule.start > from ? rule.start : from;
+  for (let i = 0; i < 7; i++) {
+    const date = shiftIso(begin, i);
+    if (rule.days.includes(weekdayOf(date))) return date;
+  }
+  return "";
+}
+
+// A generated task that is further ahead than the window and still on its original day. Such tasks (e.g. made by an
+// older version that created two weeks ahead) are hidden until their day comes within the window. A task the user
+// moved to another day, or finished, is never hidden.
+export function isBeyondWindow(task, today) {
+  if (!task.ruleId || task.done || task.deleted) return false;
+  if (task.date <= shiftIso(today, HORIZON_DAYS - 1)) return false;
+  return instanceDate(task.id) === task.date;
+}
+
 // Creates the missing tasks of every active rule for [today, today + HORIZON_DAYS).
 // Returns the same array when nothing is missing (so React does not re-render).
 // A deleted generated task stays in the list as a "deleted" mark, so it is not created again.
@@ -108,6 +161,7 @@ export function materialize(tasks, rules, today) {
     const wd = weekdayOf(date);
     for (const r of active) {
       if (date < r.start || !r.days.includes(wd)) continue;
+      if (r.count && occurrencesUntil(r, date) > r.count) continue; // the rule has ended
       const id = instanceId(r.id, date);
       if (existing.has(id)) continue;
       existing.add(id);
@@ -127,9 +181,12 @@ export function syncInstances(tasks, rule, today) {
   return tasks.map((t) => {
     if (t.ruleId !== rule.id || t.deleted || t.done || t.date < today) return t;
     const origin = instanceDate(t.id) || t.date;
-    if (rule.deleted || !rule.days.includes(weekdayOf(origin))) {
-      return { ...t, deleted: true, updatedAt: now };
-    }
+    // Removed rule, a day that is no longer part of it, or beyond its last occurrence
+    const gone =
+      rule.deleted ||
+      !rule.days.includes(weekdayOf(origin)) ||
+      (rule.count > 0 && occurrencesUntil(rule, origin) > rule.count);
+    if (gone) return { ...t, deleted: true, updatedAt: now };
     if (t.title === rule.title && t.time === rule.time) return t;
     return { ...t, title: rule.title, time: rule.time, updatedAt: now };
   });

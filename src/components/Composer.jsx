@@ -133,6 +133,12 @@ export default function Composer({ today, onAdd }) {
   const [time, setTime] = useState("");
   const [repeatOpen, setRepeatOpen] = useState(false);
   const [days, setDays] = useState([]);
+  const [count, setCount] = useState(0); // 0 = repeats forever, otherwise ends after this many times
+  const repeating = days.length > 0;
+  const setRepeat = (d, n) => {
+    setDays(d);
+    setCount(n);
+  };
   const [timeOpen, setTimeOpen] = useState(false);
   const inputRef = useRef(null);
   const dateRef = useRef(null);
@@ -150,10 +156,10 @@ export default function Composer({ today, onAdd }) {
       return;
     }
     const q = parseQuick(text, today, tomorrow);
-    onAdd(q.title, q.date || date, q.time || time, days);
+    onAdd(q.title, q.date || date, q.time || time, days, count);
     setTitle("");
     setTime("");
-    setDays([]);
+    setRepeat([], 0);
     setRepeatOpen(false);
     setDate(today);
     // blur so mobile keyboard closes after add
@@ -163,11 +169,11 @@ export default function Composer({ today, onAdd }) {
   function clearExtras() {
     setDate(today);
     setTime("");
-    setDays([]);
+    setRepeat([], 0);
     setRepeatOpen(false);
   }
 
-  const hasExtras = date !== today || !!time || days.length > 0;
+  const hasExtras = date !== today || !!time || repeating;
 
   return (
     <form onSubmit={submit} className="mb-5">
@@ -254,11 +260,11 @@ export default function Composer({ today, onAdd }) {
           type="button"
           aria-expanded={repeatOpen}
           onClick={() => setRepeatOpen((o) => !o)}
-          className={"shrink-0 " + chip + (days.length || repeatOpen ? chipOn : chipOff)}
+          className={"shrink-0 " + chip + (repeating || repeatOpen ? chipOn : chipOff)}
         >
           <RepeatIcon />
           <span className="max-w-[9rem] truncate whitespace-nowrap">
-            {days.length ? describeDays(days) : "Tekrar"}
+            {days.length ? describeDays(days) + (count ? " ×" + count : "") : "Tekrar"}
           </span>
         </button>
         {hasExtras ? (
@@ -273,11 +279,12 @@ export default function Composer({ today, onAdd }) {
       </div>
 
       {repeatOpen ? (
-        <div className="mt-2 rounded-xl border border-[var(--line)] p-3">
-          <DayPicker days={days} onChange={setDays} />
-          {days.length ? (
-            <p className="mt-2 text-xs text-[var(--muted)]">
-              {(date === today ? "Bugünden" : shortDate(date) + " tarihinden") + " itibaren eklenir."}
+        <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3.5 shadow-[var(--shadow)]">
+          <DayPicker days={days} count={count} onChange={setRepeat} />
+          {repeating ? (
+            <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">
+              {(date > tomorrow ? shortDate(date) + " tarihinden itibaren geçerli. " : "") +
+                "Yalnızca bugün ve yarın için görünür; sonraki günler günü gelince eklenir."}
             </p>
           ) : null}
         </div>

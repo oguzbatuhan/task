@@ -1,6 +1,7 @@
 import { HistorySheet } from "./History.jsx";
 import { RepeatIcon } from "./Icons.jsx";
-import { describeDays } from "../lib/repeat.js";
+import { shortDate } from "../lib/dates.js";
+import { describeRule, isEnded, lastDate, occurrencesUntil } from "../lib/repeat.js";
 
 // Small pill under the main content: opens the list of recurring tasks
 export function RulesButton({ count, onClick }) {
@@ -19,7 +20,7 @@ export function RulesButton({ count, onClick }) {
 }
 
 // List of recurring tasks; tapping one opens it for editing
-export function RulesSheet({ rules, onOpen, onClose }) {
+export function RulesSheet({ rules, today, onOpen, onClose }) {
   return (
     <HistorySheet title="Tekrarlayan görevler" summary={rules.length + " görev"} onClose={onClose}>
       <ul className="py-1">
@@ -28,8 +29,13 @@ export function RulesSheet({ rules, onOpen, onClose }) {
             <button type="button" onClick={() => onOpen(r.id)} className="flex min-h-14 w-full flex-col justify-center py-2 text-left">
               <span className="break-words text-[0.9375rem]">{r.title}</span>
               <span className="tabular mt-0.5 text-xs font-medium text-[var(--accent)]">
-                {describeDays(r.days)}
+                {describeRule(r)}
                 {r.time ? " · " + r.time : ""}
+                {r.count
+                  ? isEnded(r, today)
+                    ? " · Bitti"
+                    : " · " + Math.min(occurrencesUntil(r, today), r.count) + "/" + r.count + " (son: " + shortDate(lastDate(r)) + ")"
+                  : ""}
               </span>
             </button>
           </li>
