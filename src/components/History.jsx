@@ -8,20 +8,17 @@ export function HistoryButton({ count, onClick }) {
       type="button"
       onClick={onClick}
       aria-haspopup="dialog"
-      className="inline-flex h-9 items-center gap-2 rounded-full border border-[var(--line-strong)] pl-3 pr-3.5 text-[0.8125rem] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--fg)]"
+      className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] pl-3.5 pr-2 text-[0.8125rem] font-medium text-[var(--fg)] transition-colors active:bg-[var(--hover)] hover:border-[var(--line-strong)]"
     >
       <HistoryIcon />
-      Geçmiş
-      <span className="tabular rounded-full bg-[var(--accent-soft)] px-1.5 text-xs leading-5 text-[var(--accent)]">
+      <span>Geçmiş</span>
+      <span className="tabular rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
         {count}
       </span>
     </button>
   );
 }
 
-const FOCUSABLE = 'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])';
-
-// Bottom sheet on phones, side drawer on larger screens.
 export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, children }) {
   const panelRef = useRef(null);
   const closeRef = useRef(null);
@@ -84,11 +81,9 @@ export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, ch
     if (!d || d.id !== e.pointerId) return;
     let dy = e.clientY - d.y0;
     if (expanded) {
-      // only pull down to shrink / close
       if (dy < 0) dy = 0;
-    } else {
-      // pull up expands (dampen), pull down closes
-      if (dy < 0) dy = Math.max(dy, -120);
+    } else if (dy < 0) {
+      dy = Math.max(dy, -120);
     }
     d.dy = dy;
     setOffset(dy);
@@ -101,7 +96,6 @@ export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, ch
     const dy = d.dy || 0;
     drag.current = null;
     setDragging(false);
-
     if (dy > 110) {
       setOffset(0);
       closeFn.current();
@@ -120,13 +114,11 @@ export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, ch
     setOffset(0);
   };
 
-  const heightClass = expanded
-    ? "h-[100dvh] rounded-none"
-    : "h-[88dvh] rounded-t-[1.75rem]";
+  const heightClass = expanded ? "h-[100dvh] rounded-none" : "h-[90dvh] rounded-t-[1.5rem]";
 
   return (
     <div
-      className="history-backdrop fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/35 sm:items-stretch sm:justify-end"
+      className="history-backdrop fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/50 sm:items-stretch sm:justify-end"
       onMouseDown={(e) => e.target === e.currentTarget && Date.now() - openedAt.current > 500 && closeFn.current()}
     >
       <section
@@ -135,15 +127,17 @@ export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, ch
         aria-modal="true"
         aria-label={title}
         className={
-          "history-panel flex w-full max-w-lg flex-col overflow-hidden border border-[var(--line)] bg-[var(--surface)] shadow-2xl sm:h-full sm:max-w-md sm:rounded-none sm:rounded-l-[1.5rem] sm:border-r-0 " +
+          "history-panel flex w-full max-w-lg flex-col overflow-hidden border border-[var(--line)] bg-[var(--bg)] shadow-[0_-8px_40px_rgba(0,0,0,0.45)] sm:h-full sm:max-w-md sm:rounded-none sm:rounded-l-2xl sm:border-r-0 sm:bg-[var(--surface)] " +
           heightClass
         }
         style={{
           transform: offset ? "translateY(" + offset + "px)" : undefined,
-          transition: dragging ? "none" : "transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), border-radius 0.28s ease",
+          transition: dragging
+            ? "none"
+            : "transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), border-radius 0.28s ease",
         }}
       >
-        {/* Drag handle — mobile only */}
+        {/* Mobile drag zone */}
         <div
           className="sm:hidden touch-none select-none"
           onPointerDown={onHandleDown}
@@ -151,23 +145,20 @@ export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, ch
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
         >
-          <div className="flex cursor-grab flex-col items-center pt-2 active:cursor-grabbing" aria-hidden="true">
-            <div className="h-1 w-10 rounded-full bg-[var(--line-strong)]" />
-            <p className="mt-1.5 text-[10px] text-[var(--muted)]">
-              {expanded ? "Aşağı çek · kapat" : "Yukarı · tam ekran · aşağı · kapat"}
-            </p>
+          <div className="flex justify-center pb-1 pt-3" aria-hidden="true">
+            <div className="h-1 w-9 rounded-full bg-[var(--line-strong)]" />
           </div>
-          <header className="flex items-start gap-3 px-5 pb-2 pt-2">
+          <header className="flex items-center gap-3 px-5 pb-3 pt-1">
             <div className="min-w-0 flex-1">
-              <h2 className="text-[1.0625rem] font-semibold tracking-tight">{title}</h2>
-              {summary ? <p className="tabular mt-0.5 text-xs text-[var(--muted)]">{summary}</p> : null}
+              <h2 className="text-base font-semibold tracking-tight">{title}</h2>
+              {summary ? <p className="tabular mt-0.5 text-[11px] text-[var(--muted)]">{summary}</p> : null}
             </div>
             <button
               ref={closeRef}
               type="button"
               onClick={onClose}
               aria-label="Kapat"
-              className="icon-btn -mr-1.5 -mt-0.5 h-9 w-9 rounded-full hover:bg-[var(--hover)]"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--muted)] ring-1 ring-[var(--line)] active:bg-[var(--hover)]"
               onPointerDown={(e) => e.stopPropagation()}
             >
               <CloseIcon />
@@ -175,28 +166,30 @@ export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, ch
           </header>
         </div>
 
-        {/* Desktop header (no drag) */}
-        <header className="hidden shrink-0 items-start gap-3 px-5 pb-2 pt-6 sm:flex">
+        {/* Desktop header */}
+        <header className="hidden shrink-0 items-center gap-3 border-b border-[var(--line)] px-5 py-4 sm:flex">
           <div className="min-w-0 flex-1">
-            <h2 className="text-[1.0625rem] font-semibold tracking-tight">{title}</h2>
+            <h2 className="text-base font-semibold tracking-tight">{title}</h2>
             {summary ? <p className="tabular mt-0.5 text-xs text-[var(--muted)]">{summary}</p> : null}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Kapat"
-            className="icon-btn -mr-1.5 -mt-0.5 h-9 w-9 rounded-full hover:bg-[var(--hover)]"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--bg)] text-[var(--muted)] ring-1 ring-[var(--line)] hover:text-[var(--fg)]"
           >
             <CloseIcon />
           </button>
         </header>
 
-        {toolbar ? <div className="shrink-0 px-5 pb-3">{toolbar}</div> : null}
+        {toolbar ? (
+          <div className="shrink-0 border-b border-[var(--line)] px-5 py-3">{toolbar}</div>
+        ) : null}
 
         <div
           data-history-scroll
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-[var(--line)] px-4 sm:px-5"
-          style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 0px))" }}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-5"
+          style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom, 0px))" }}
         >
           {children}
         </div>
@@ -204,6 +197,7 @@ export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, ch
     </div>
   );
 }
+
 export function HistoryToolbar({
   query,
   onQueryChange,
@@ -288,15 +282,14 @@ export function HistoryToolbar({
 // Month heading inside the list; sticks to the top while that month scrolls
 export function MonthHead({ label, meta }) {
   return (
-    <h3 className="sticky top-0 z-[1] -mx-4 flex items-baseline gap-2 bg-[var(--surface)] px-4 pb-1.5 pt-4 text-xs font-medium text-[var(--muted)] sm:-mx-5 sm:px-5">
+    <h3 className="sticky top-0 z-[1] -mx-4 flex items-baseline gap-2 bg-[var(--bg)]/95 px-4 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)] backdrop-blur-md sm:-mx-5 sm:bg-[var(--surface)]/95 sm:px-5">
       <span>{label}</span>
-      <span className="flex-1" aria-hidden="true"></span>
-      <span className="tabular">{meta}</span>
+      <span className="h-px min-w-[1rem] flex-1 bg-[var(--line)]" aria-hidden="true" />
+      <span className="tabular font-medium normal-case tracking-normal">{meta}</span>
     </h3>
   );
 }
 
-// One past day: a single row that opens to show that day's records
 export function HistoryDay({ primary, secondary, meta, open, onToggle, children }) {
   return (
     <section className="border-b border-[var(--line)] last:border-b-0">
@@ -304,29 +297,29 @@ export function HistoryDay({ primary, secondary, meta, open, onToggle, children 
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex min-h-12 w-full items-center gap-2 rounded-lg py-2.5 text-left text-sm hover:bg-[var(--hover)]"
+        className="flex min-h-[3rem] w-full items-center gap-2.5 rounded-xl px-1 py-2.5 text-left text-sm transition-colors active:bg-[var(--hover)] hover:bg-[var(--hover)]"
       >
         <span
           className={
-            "inline-flex shrink-0 text-[var(--muted)] transition-transform " +
-            (open ? "" : "-rotate-90")
+            "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--muted)] ring-1 ring-[var(--line)] transition-transform " +
+            (open ? "rotate-0" : "-rotate-90")
           }
         >
           <ChevronIcon dir="down" />
         </span>
-        <span className="shrink-0 font-medium">{primary}</span>
-        {secondary ? (
-          <span className="min-w-0 truncate text-[var(--muted)]">{secondary}</span>
-        ) : null}
-        <span className="flex-1" aria-hidden="true"></span>
-        <span className="tabular shrink-0 text-[var(--muted)]">{meta}</span>
+        <span className="min-w-0 flex-1">
+          <span className="font-medium text-[var(--fg)]">{primary}</span>
+          {secondary ? (
+            <span className="ml-2 text-[var(--muted)]">{secondary}</span>
+          ) : null}
+        </span>
+        <span className="tabular shrink-0 text-xs text-[var(--muted)]">{meta}</span>
       </button>
-      {open ? <div className="task-in pb-2 pl-6">{children}</div> : null}
+      {open ? <div className="task-in pb-3 pl-9">{children}</div> : null}
     </section>
   );
 }
 
-// Empty / no-results state
 export function HistoryEmpty({ query, filter }) {
   let message = "Geçmişte henüz gün yok.";
   if (query) message = `"${query}" için sonuç bulunamadı.`;
