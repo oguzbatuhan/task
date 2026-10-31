@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronIcon, CloseIcon, HistoryIcon, SearchIcon } from "./Icons.jsx";
 
 // Small pill under the main content. The whole history stays hidden behind it.
@@ -28,6 +28,13 @@ export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, ch
   const closeFn = useRef(onClose);
   closeFn.current = onClose;
   const openedAt = useRef(Date.now());
+  const [expanded, setExpanded] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const drag = useRef(null);
+
+  const isMobile = () =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
 
   useEffect(() => {
     const prevFocus = document.activeElement;
@@ -62,6 +69,61 @@ export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, ch
     };
   }, []);
 
+  const onHandleDown = (e) => {
+    if (!isMobile()) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    drag.current = { y0: e.clientY, dy: 0, id: e.pointerId };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+    setDragging(true);
+  };
+
+  const onHandleMove = (e) => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    let dy = e.clientY - d.y0;
+    if (expanded) {
+      // only pull down to shrink / close
+      if (dy < 0) dy = 0;
+    } else {
+      // pull up expands (dampen), pull down closes
+      if (dy < 0) dy = Math.max(dy, -120);
+    }
+    d.dy = dy;
+    setOffset(dy);
+  };
+
+  const endDrag = (e) => {
+    const d = drag.current;
+    if (!d) return;
+    if (e && d.id !== e.pointerId) return;
+    const dy = d.dy || 0;
+    drag.current = null;
+    setDragging(false);
+
+    if (dy > 110) {
+      setOffset(0);
+      closeFn.current();
+      return;
+    }
+    if (!expanded && dy < -50) {
+      setExpanded(true);
+      setOffset(0);
+      return;
+    }
+    if (expanded && dy > 70) {
+      setExpanded(false);
+      setOffset(0);
+      return;
+    }
+    setOffset(0);
+  };
+
+  const heightClass = expanded
+    ? "h-[100dvh] rounded-none"
+    : "h-[88dvh] rounded-t-[1.75rem]";
+
   return (
     <div
       className="history-backdrop fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/35 sm:items-stretch sm:justify-end"
@@ -72,19 +134,54 @@ export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, ch
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="history-panel flex h-[88dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.75rem] border border-[var(--line)] bg-[var(--surface)] shadow-2xl sm:h-full sm:max-w-md sm:rounded-none sm:rounded-l-[1.5rem] sm:border-r-0"
+        className={
+          "history-panel flex w-full max-w-lg flex-col overflow-hidden border border-[var(--line)] bg-[var(--surface)] shadow-2xl sm:h-full sm:max-w-md sm:rounded-none sm:rounded-l-[1.5rem] sm:border-r-0 " +
+          heightClass
+        }
+        style={{
+          transform: offset ? "translateY(" + offset + "px)" : undefined,
+          transition: dragging ? "none" : "transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), border-radius 0.28s ease",
+        }}
       >
-        <div className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-[var(--line-strong)] sm:hidden" aria-hidden="true" />
+        {/* Drag handle — mobile only */}
+        <div
+          className="sm:hidden touch-none select-none"
+          onPointerDown={onHandleDown}
+          onPointerMove={onHandleMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+        >
+          <div className="flex cursor-grab flex-col items-center pt-2 active:cursor-grabbing" aria-hidden="true">
+            <div className="h-1 w-10 rounded-full bg-[var(--line-strong)]" />
+            <p className="mt-1.5 text-[10px] text-[var(--muted)]">
+              {expanded ? "Aşağı çek · kapat" : "Yukarı · tam ekran · aşağı · kapat"}
+            </p>
+          </div>
+          <header className="flex items-start gap-3 px-5 pb-2 pt-2">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[1.0625rem] font-semibold tracking-tight">{title}</h2>
+              {summary ? <p className="tabular mt-0.5 text-xs text-[var(--muted)]">{summary}</p> : null}
+            </div>
+            <button
+              ref={closeRef}
+              type="button"
+              onClick={onClose}
+              aria-label="Kapat"
+              className="icon-btn -mr-1.5 -mt-0.5 h-9 w-9 rounded-full hover:bg-[var(--hover)]"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <CloseIcon />
+            </button>
+          </header>
+        </div>
 
-        <header className="flex shrink-0 items-start gap-3 px-5 pb-2 pt-3 sm:pt-6">
+        {/* Desktop header (no drag) */}
+        <header className="hidden shrink-0 items-start gap-3 px-5 pb-2 pt-6 sm:flex">
           <div className="min-w-0 flex-1">
             <h2 className="text-[1.0625rem] font-semibold tracking-tight">{title}</h2>
-            {summary ? (
-              <p className="tabular mt-0.5 text-xs text-[var(--muted)]">{summary}</p>
-            ) : null}
+            {summary ? <p className="tabular mt-0.5 text-xs text-[var(--muted)]">{summary}</p> : null}
           </div>
           <button
-            ref={closeRef}
             type="button"
             onClick={onClose}
             aria-label="Kapat"
@@ -107,8 +204,6 @@ export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, ch
     </div>
   );
 }
-
-// Search + filter toolbar used inside HistorySheet
 export function HistoryToolbar({
   query,
   onQueryChange,
