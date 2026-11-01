@@ -11,7 +11,7 @@ const menuItem =
   "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--hover)]";
 
 function timeText(ms) {
-  return new Date(ms).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  return new Date(ms).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 }
 
 // Cloud backup chip for the top-right corner of the header; the menu holds the actions
@@ -38,7 +38,7 @@ export default function SyncBar({ sync }) {
     return (
       <button type="button" onClick={connect} className={pill + pillAccent}>
         <CloudIcon />
-        Google ile bağlan
+        Connect with Google
       </button>
     );
   }
@@ -48,9 +48,9 @@ export default function SyncBar({ sync }) {
       <div className="flex items-center gap-1" role="status">
         <button type="button" onClick={connect} className={pill + pillWarn}>
           <AlertIcon />
-          Yeniden bağlan
+          Reconnect
         </button>
-        <button type="button" onClick={disconnect} aria-label="Bağlantıyı kes" className="icon-btn">
+        <button type="button" onClick={disconnect} aria-label="Disconnect" className="icon-btn">
           <UnlinkIcon />
         </button>
       </div>
@@ -59,7 +59,7 @@ export default function SyncBar({ sync }) {
 
   const syncing = status === "syncing";
   const failed = status === "error";
-  const label = failed ? "Hata" : syncing ? "Eşitleniyor" : lastSynced ? timeText(lastSynced) : "Yedek";
+  const label = failed ? "Error" : syncing ? "Syncing" : lastSynced ? timeText(lastSynced) : "Backup";
 
   return (
     <div className="relative" ref={box}>
@@ -67,7 +67,7 @@ export default function SyncBar({ sync }) {
         type="button"
         aria-haspopup="menu"
         aria-expanded={menu}
-        aria-label="Bulut yedekleme"
+        aria-label="Cloud backup"
         onClick={() => setMenu((v) => !v)}
         className={pill + (failed ? pillWarn : pillNeutral)}
       >
@@ -87,7 +87,7 @@ export default function SyncBar({ sync }) {
           <p className="break-all px-3 pb-1.5 pt-2 text-xs text-[var(--muted)]">
             {failed && error
               ? error
-              : (email || "Google hesabı") + (lastSynced ? " · son eşitleme " + timeText(lastSynced) : "")}
+              : (email || "Google account") + (lastSynced ? " · last synced " + timeText(lastSynced) : "")}
           </p>
           <button
             type="button"
@@ -99,7 +99,7 @@ export default function SyncBar({ sync }) {
             }}
           >
             <RefreshIcon />
-            {failed ? "Tekrar dene" : "Şimdi eşitle"}
+            {failed ? "Try again" : "Sync now"}
           </button>
           <button
             type="button"
@@ -111,7 +111,7 @@ export default function SyncBar({ sync }) {
             }}
           >
             <UnlinkIcon />
-            Bağlantıyı kes
+            Disconnect
           </button>
         </div>
       ) : null}

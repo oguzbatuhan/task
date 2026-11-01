@@ -45,13 +45,13 @@ function TimeSheet({ value, onChange, onClose }) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Saat seç"
+        aria-label="Pick a time"
         className="w-full max-w-md rounded-t-3xl border border-[var(--line)] bg-[var(--surface)] px-5 pt-4 shadow-2xl sm:rounded-3xl"
         style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-medium">Saat</h3>
-          <button type="button" onClick={onClose} aria-label="Kapat" className="icon-btn">
+          <h3 className="text-sm font-medium">Time</h3>
+          <button type="button" onClick={onClose} aria-label="Close" className="icon-btn">
             <CloseIcon />
           </button>
         </div>
@@ -76,7 +76,7 @@ function TimeSheet({ value, onChange, onClose }) {
 
         <div className="mb-4 grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-            Saat
+            Hour
             <select
               value={h}
               onChange={(e) => setH(e.target.value)}
@@ -90,7 +90,7 @@ function TimeSheet({ value, onChange, onClose }) {
             </select>
           </label>
           <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-            Dakika
+            Minute
             <select
               value={MINS.includes(m) ? m : "00"}
               onChange={(e) => setM(e.target.value)}
@@ -115,11 +115,11 @@ function TimeSheet({ value, onChange, onClose }) {
               }}
               className="btn btn-ghost flex-1"
             >
-              Saati kaldır
+              Remove time
             </button>
           ) : null}
           <button type="button" onClick={() => apply(h, MINS.includes(m) ? m : "00")} className="btn btn-solid flex-1">
-            Tamam
+            OK
           </button>
         </div>
       </div>
@@ -187,13 +187,13 @@ export default function Composer({ today, onAdd }) {
           maxLength={120}
           autoComplete="off"
           enterKeyHint="done"
-          aria-label="Yeni görev"
-          placeholder="Görev ekle…"
+          aria-label="New task"
+          placeholder="Add a task…"
           className="min-w-0 flex-1 bg-transparent py-2.5 text-[0.9375rem] text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"
         />
         <button
           type="submit"
-          aria-label="Görevi ekle"
+          aria-label="Add task"
           className={
             "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)] transition-opacity " +
             (empty ? "opacity-35" : "active:opacity-80")
@@ -210,14 +210,14 @@ export default function Composer({ today, onAdd }) {
           onClick={() => setDate(today)}
           className={"shrink-0 " + chip + (date === today ? chipOn : chipOff)}
         >
-          Bugün
+          Today
         </button>
         <button
           type="button"
           onClick={() => setDate(tomorrow)}
           className={"shrink-0 " + chip + (date === tomorrow ? chipOn : chipOff)}
         >
-          Yarın
+          Tomorrow
         </button>
         <button
           type="button"
@@ -234,7 +234,7 @@ export default function Composer({ today, onAdd }) {
         >
           <CalendarIcon />
           <span className="whitespace-nowrap">
-            {custom ? relativeName(date, today) || shortDate(date) : "Tarih"}
+            {custom ? relativeName(date, today) || shortDate(date) : "Date"}
           </span>
         </button>
         {/* Native date input kept off-layout for picker API */}
@@ -254,7 +254,7 @@ export default function Composer({ today, onAdd }) {
           className={"shrink-0 " + chip + (time ? chipOn : chipOff)}
         >
           <ClockIcon />
-          <span className="tabular whitespace-nowrap">{time || "Saat"}</span>
+          <span className="tabular whitespace-nowrap">{time || "Time"}</span>
         </button>
         <button
           type="button"
@@ -264,7 +264,7 @@ export default function Composer({ today, onAdd }) {
         >
           <RepeatIcon />
           <span className="max-w-[9rem] truncate whitespace-nowrap">
-            {days.length ? describeDays(days) + (count ? " ×" + count : "") : "Tekrar"}
+            {days.length ? describeDays(days) + (count ? " ×" + count : "") : "Repeat"}
           </span>
         </button>
         {hasExtras ? (
@@ -273,7 +273,7 @@ export default function Composer({ today, onAdd }) {
             onClick={clearExtras}
             className="shrink-0 px-2 text-xs text-[var(--muted)] active:text-[var(--fg)]"
           >
-            Sıfırla
+            Reset
           </button>
         ) : null}
       </div>
@@ -283,8 +283,8 @@ export default function Composer({ today, onAdd }) {
           <DayPicker days={days} count={count} onChange={setRepeat} />
           {repeating ? (
             <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">
-              {(date > tomorrow ? shortDate(date) + " tarihinden itibaren geçerli. " : "") +
-                "Yalnızca bugün ve yarın için görünür; sonraki günler günü gelince eklenir."}
+              {(date > tomorrow ? "Starts on " + shortDate(date) + ". " : "") +
+                "Only shown for today and tomorrow; later days are added when they come up."}
             </p>
           ) : null}
         </div>

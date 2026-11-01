@@ -71,7 +71,7 @@ export default function App() {
     }
     for (const list of map.values()) {
       list.sort(
-        (a, b) => a.order - b.order || a.title.localeCompare(b.title, "tr"),
+        (a, b) => a.order - b.order || a.title.localeCompare(b.title, "en"),
       );
     }
     return map;
@@ -122,7 +122,7 @@ export default function App() {
   // Filtered past days (search + status filter). Keeps newest-first order.
   const filteredPast = useMemo(() => {
     if (!historyOpen) return [];
-    const q = historyQuery.trim().toLocaleLowerCase("tr");
+    const q = historyQuery.trim().toLocaleLowerCase("en");
     return allPast.slice(0, historyLimit).filter((date) => {
       const all = byDate.get(date) || [];
       if (historyFilter === "done" && !all.some((t) => t.done)) return false;
@@ -135,7 +135,7 @@ export default function App() {
         (label.secondary || "") +
         " " +
         all.map((t) => t.title).join(" ")
-      ).toLocaleLowerCase("tr");
+      ).toLocaleLowerCase("en");
       return hay.includes(q);
     });
   }, [historyOpen, allPast, historyLimit, historyQuery, historyFilter, byDate, today]);
@@ -157,7 +157,7 @@ export default function App() {
       const later = first > shiftIso(today, 1);
       setToast({
         key: Date.now(),
-        message: "Tekrarlayan görev eklendi" + (later ? " · " + shortDate(first) + " günü görünecek" : ""),
+        message: "Recurring task added" + (later ? " · will appear on " + shortDate(first) : ""),
       });
       return;
     }
@@ -188,12 +188,12 @@ export default function App() {
       ),
     );
 
-  // Short message at the bottom; deleting offers "Geri al"
+  // Short message at the bottom; deleting offers "Undo"
   const [toast, setToast] = useState(null);
   const closeToast = useCallback(() => setToast(null), []);
   const remove = (id) => {
     setDeleted(id, true);
-    setToast({ key: Date.now(), message: "Görev silindi", undo: () => setDeleted(id, false) });
+    setToast({ key: Date.now(), message: "Task deleted", undo: () => setDeleted(id, false) });
   };
 
   // Unfinished tasks from earlier days: they used to hide in the history, now they stay in sight
@@ -205,7 +205,7 @@ export default function App() {
           (a, b) =>
             a.date.localeCompare(b.date) ||
             a.order - b.order ||
-            a.title.localeCompare(b.title, "tr"),
+            a.title.localeCompare(b.title, "en"),
         ),
     [tasks, today],
   );
@@ -219,7 +219,7 @@ export default function App() {
     });
     setToast({
       key: Date.now(),
-      message: ids.size + " görev bugüne taşındı",
+      message: ids.size + (ids.size === 1 ? " task" : " tasks") + " moved to today",
       undo: () =>
         setTasks((prev) =>
           prev.map((t) => {
@@ -278,7 +278,7 @@ export default function App() {
     setRules((prev) => prev.map((r) => (r.id === id ? next : r)));
     setTasks((prev) => syncInstances(prev, next, today));
     setEditingRuleId(null);
-    setToast({ key: Date.now(), message: "Tekrarlayan görev silindi" });
+    setToast({ key: Date.now(), message: "Recurring task deleted" });
   };
 
   const save = (id, { title, date, time }) => {
@@ -353,9 +353,9 @@ export default function App() {
           count={all.length ? done + "/" + all.length : "0"}
         />
         {all.length === 0 ? (
-          <p className="py-4 text-center text-sm text-[var(--muted)]">Bu günde görev yok.</p>
+          <p className="py-4 text-center text-sm text-[var(--muted)]">No tasks on this day.</p>
         ) : items.length === 0 ? (
-          <p className="py-4 text-center text-sm text-[var(--accent)]">Tüm görevler tamamlandı ✨</p>
+          <p className="py-4 text-center text-sm text-[var(--accent)]">All tasks completed ✨</p>
         ) : (
           <div className="mt-1">
             <SortableList
@@ -413,7 +413,7 @@ export default function App() {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-sm text-[var(--muted)]">{todayLabel}</p>
-            <h1 className="text-2xl font-semibold tracking-tight">Görevler</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
           </div>
           <SyncBar sync={sync} />
         </div>
@@ -421,7 +421,7 @@ export default function App() {
           <div
             className="progress min-w-0 flex-1 max-w-[12rem] sm:max-w-[14rem]"
             role="progressbar"
-            aria-label="Bugünün ilerlemesi"
+            aria-label="Today's progress"
             aria-valuemin={0}
             aria-valuemax={todayItems.length}
             aria-valuenow={todayDone}
@@ -434,9 +434,9 @@ export default function App() {
           </div>
           <p className="tabular shrink-0 text-sm text-[var(--muted)]">
             {todayItems.length === 0
-              ? "Bugün için görev yok"
+              ? "No tasks for today"
               : todayDone === todayItems.length
-                ? "Bugün tamam 🎉"
+                ? "Today done 🎉"
                 : todayDone + "/" + todayItems.length}
           </p>
         </div>
@@ -447,15 +447,15 @@ export default function App() {
       <div className="flex flex-col gap-5">
         {overdue.length > 0 ? (
           <section
-            aria-label="Geciken görevler"
+            aria-label="Overdue tasks"
             className="day-card day-card-warn"
           >
             <h2 className="mb-1 flex items-center gap-2 text-sm">
-              <span className="font-medium text-[var(--warn)]">Geciken</span>
+              <span className="font-medium text-[var(--warn)]">Overdue</span>
               <span className="tabular text-[var(--muted)]">{overdue.length}</span>
               <span className="flex-1" aria-hidden="true"></span>
               <button type="button" onClick={moveOverdueToToday} className="btn btn-ghost btn-sm">
-                Hepsini bugüne taşı
+                Move all to today
               </button>
             </h2>
             <ul>
@@ -476,8 +476,8 @@ export default function App() {
         {upcoming.length === 0 ? (
           <p className="py-8 text-center text-sm text-[var(--muted)]">
             {dates.length === 0
-              ? "Henüz görev yok. Yukarıdan ilk görevini ekle."
-              : "Bugün ve sonrası için görev yok."}
+              ? "No tasks yet. Add your first task above."
+              : "No tasks for today or later."}
           </p>
         ) : null}
 
@@ -491,7 +491,7 @@ export default function App() {
 
       {historyOpen && hasPast ? (
         <HistorySheet
-          summary={allPast.length + " gün · " + allStats.done + "/" + allStats.total + " tamamlandı"}
+          summary={allPast.length + (allPast.length === 1 ? " day" : " days") + " · " + allStats.done + "/" + allStats.total + " completed"}
           onClose={() => setHistoryOpen(false)}
           toolbar={
             <HistoryToolbar

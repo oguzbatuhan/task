@@ -33,7 +33,7 @@ export function GroupHead({ primary, secondary, count, progress }) {
   );
 }
 
-// Completion animation: the check pops, then the row slowly fades out and moves to the day's "Tamamlananlar" area
+// Completion animation: the check pops, then the row slowly fades out and moves to the day's "Completed" area
 const CHECK_MS = 450; // check pop + strike-through
 const FADE_MS = 800; // slow fade + collapse
 const reduceMotion = () =>
@@ -53,7 +53,7 @@ export function DoneHead({ count, open, onToggle }) {
       <span className={"inline-flex transition-transform " + (open ? "" : "-rotate-90")}>
         <ChevronIcon dir="down" />
       </span>
-      Tamamlananlar
+      Completed
       <span className="tabular">{count}</span>
     </button>
   );
@@ -61,7 +61,7 @@ export function DoneHead({ count, open, onToggle }) {
 
 const CONFIRM_MS = 5000;
 
-// Tapping a task opens a framed info area (day, time, Düzenle, Sil). Düzenle opens the edit sheet.
+// Tapping a task opens a framed info area (day, time, Edit, Delete). Edit opens the edit sheet.
 export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, dateLabel }) {
   // onOpen: old prop name, so an App.jsx that was not updated still opens the editor
   const edit = onEdit || onOpen;
@@ -83,7 +83,7 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, da
     setMode((m) => (m === "closed" ? "open" : "closed"));
   };
 
-  // "closed" | "open" (info + buttons) | "confirm" (asking "Silinsin mi?")
+  // "closed" | "open" (info + buttons) | "confirm" (asking "Delete?")
   const [mode, setMode] = useState("closed");
   const isOpen = mode !== "closed";
   const rootRef = useRef(null);
@@ -92,7 +92,7 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, da
   const prevMode = useRef("closed");
 
   // A tap anywhere outside this task closes it. Listens to "click" (not "pointerdown"), so the list does not
-  // shrink under the finger before the tap lands, and uses composedPath so Sil (which re-renders itself away)
+  // shrink under the finger before the tap lands, and uses composedPath so Delete (which re-renders itself away)
   // still counts as inside.
   useEffect(() => {
     if (!isOpen) return;
@@ -182,8 +182,8 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, da
         aria-checked={checked}
         aria-label={
           (checked
-            ? "Tamamlandı işaretini kaldır: "
-            : "Tamamlandı olarak işaretle: ") + task.title
+            ? "Mark as not completed: "
+            : "Mark as completed: ") + task.title
         }
         onClick={handleToggle}
         className={
@@ -207,7 +207,7 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, da
           }
         }}
         aria-expanded={isOpen}
-        aria-label={"Ayrıntılar: " + task.title + (task.time ? ", saat " + task.time : "")}
+        aria-label={"Details: " + task.title + (task.time ? ", at " + task.time : "")}
         className="flex min-w-0 flex-1 cursor-pointer flex-col justify-center self-stretch py-2"
       >
         <p
@@ -239,7 +239,7 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, da
               </span>
             ) : null}
             {task.ruleId ? (
-              <span className="inline-flex items-center" role="img" aria-label="Tekrarlayan görev" title="Tekrarlayan görev">
+              <span className="inline-flex items-center" role="img" aria-label="Recurring task" title="Recurring task">
                 <RepeatIcon />
               </span>
             ) : null}
@@ -251,13 +251,13 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, da
       {isOpen ? (
         <div className="task-in flex items-center gap-3 pb-2.5 pl-9 pr-1">
           {mode === "confirm" ? (
-            <div role="alertdialog" aria-label={"Silme onayı: " + task.title} className="flex w-full items-center gap-3">
-              <span className="min-w-0 flex-1 text-sm text-[var(--muted)]">Silinsin mi?</span>
+            <div role="alertdialog" aria-label={"Confirm deletion: " + task.title} className="flex w-full items-center gap-3">
+              <span className="min-w-0 flex-1 text-sm text-[var(--muted)]">Delete?</span>
               <button ref={cancelRef} type="button" onClick={() => setMode("open")} className="link-btn">
-                Vazgeç
+                Cancel
               </button>
               <button type="button" onClick={() => onRemove(task.id)} className="link-btn text-[var(--warn)] hover:text-[var(--warn)]">
-                Sil
+                Delete
               </button>
             </div>
           ) : (
@@ -274,7 +274,7 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, da
                 }}
                 className="link-btn"
               >
-                Düzenle
+                Edit
               </button>
               <button
                 ref={delRef}
@@ -282,7 +282,7 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, da
                 onClick={() => setMode("confirm")}
                 className="link-btn text-[var(--warn)] hover:text-[var(--warn)]"
               >
-                Sil
+                Delete
               </button>
             </>
           )}

@@ -1,13 +1,13 @@
-// Supabase yedekleme: Google ile giriş yapılır, veriler Supabase'deki ORTAK tek tabloya
-// (varsayılan: app_backups) yazılır. Her uygulama kendi satırını kullanır: (user_id, app) = ("task").
-// Bu yüzden Günlük / Akış / Görevler verileri aynı tabloda olsa da asla karışmaz.
+// Supabase backup: sign in with Google; data is written to ONE shared table in Supabase
+// (default: app_backups). Each app uses its own row: (user_id, app) = ("task").
+// So Daily / Flow / Tasks data never get mixed up even though they share the same table.
 import { createClient } from "@supabase/supabase-js";
 
 const URL = import.meta.env.VITE_SUPABASE_URL;
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const TABLE = import.meta.env.VITE_SUPABASE_TABLE || "app_backups";
 
-// Bu uygulamanın tablodaki kimliği. Değiştirme: veriyi diğer uygulamalardan ayıran anahtar budur.
+// This app's identity in the table. Do not change it: it is the key that separates the data from the other apps.
 export const APP_ID = "task";
 
 export const cloudConfigured = Boolean(URL && KEY);
@@ -19,7 +19,7 @@ export class AuthError extends Error {
   }
 }
 
-// Üç uygulama aynı alan adında (github.io) çalıştığı için oturum anahtarı uygulamaya özeldir.
+// The three apps run on the same domain (github.io), so the session key is specific to each app.
 const supabase = cloudConfigured
   ? createClient(URL, KEY, {
       auth: {
@@ -32,7 +32,7 @@ const supabase = cloudConfigured
     })
   : null;
 
-// Google'a yönlendirir; giriş bitince sayfa bu adrese döner (Supabase > Redirect URLs listesinde olmalı).
+// Redirects to Google; after sign-in the page returns to this address (it must be in Supabase > Redirect URLs).
 export async function signIn() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -44,7 +44,7 @@ export async function signIn() {
   if (error) throw new Error(error.message);
 }
 
-// scope "local": yalnızca bu uygulamanın oturumunu kapatır, diğer uygulamalar etkilenmez.
+// scope "local": signs out of this app only, the other apps are not affected.
 export async function signOut() {
   if (!supabase) return;
   try {
@@ -58,34 +58,34 @@ export function onAuthChange(callback) {
   return () => data.subscription.unsubscribe();
 }
 
-// Geçerli kullanıcıyı döndürür; oturum yoksa AuthError fırlatır.
+// Returns the current user; throws AuthError when there is no session.
 export async function requireUser() {
   const { data, error } = await supabase.auth.getSession();
   if (error) {
-    // Ağ hatasında oturum silinmez; sadece bu denemeyi hata say
+    // A network error does not clear the session; only count this attempt as failed
     if (/retryable|fetch/i.test(error.name + " " + error.message)) {
-      throw new Error("Sunucuya ulaşılamadı. Bağlantı gelince yeniden denenecek.");
+      throw new Error("Could not reach the server. Will retry when the connection returns.");
     }
     throw new AuthError(error.message);
   }
-  if (!data.session) throw new AuthError("Oturum yok");
+  if (!data.session) throw new AuthError("No session");
   return data.session.user;
 }
 
 function toError(error) {
   if (error.status === 401 || error.code === "PGRST301" || error.code === "PGRST303") {
-    return new AuthError("Oturum süresi doldu");
+    return new AuthError("Session expired");
   }
   if (error.code === "42P01" || error.code === "PGRST205") {
-    return new Error("Supabase'de '" + TABLE + "' tablosu yok. supabase/setup.sql dosyasını SQL Editor'da çalıştır.");
+    return new Error("Table '" + TABLE + "' does not exist in Supabase. Run supabase/setup.sql in the SQL Editor.");
   }
   if (error.code === "42501") {
-    return new Error("Tabloya erişim reddedildi (RLS). supabase/setup.sql dosyasını çalıştırdığından emin ol.");
+    return new Error("Access to the table was denied (RLS). Make sure you have run supabase/setup.sql.");
   }
-  return new Error(error.message || "Supabase isteği başarısız oldu");
+  return new Error(error.message || "Supabase request failed");
 }
 
-// Bu uygulamanın verisini indirir. Satır yoksa null döner.
+// Downloads this app's data. Returns null when there is no row.
 export async function downloadData() {
   const user = await requireUser();
   const { data, error } = await supabase
@@ -98,7 +98,7 @@ export async function downloadData() {
   return data?.data ?? null;
 }
 
-// Yalnızca (user_id, app) satırını yazar; başka uygulamanın satırına dokunmaz.
+// Writes only the (user_id, app) row; never touches another app's row.
 export async function uploadData(payload) {
   const user = await requireUser();
   const { error } = await supabase.from(TABLE).upsert(

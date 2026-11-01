@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-// Small message pill at the bottom of the screen with an optional "Geri al" action. Closes itself.
+// Small message pill at the bottom of the screen with an optional "Undo" action. Closes itself.
 export default function Toast({ toast, onClose }) {
   useEffect(() => {
     if (!toast) return;
@@ -29,7 +29,7 @@ export default function Toast({ toast, onClose }) {
             }}
             className="h-8 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--bg)_15%,transparent)] px-4 text-[0.8125rem] font-medium hover:bg-[color-mix(in_srgb,var(--bg)_28%,transparent)]"
           >
-            Geri al
+            Undo
           </button>
         ) : (
           <span className="w-3" aria-hidden="true"></span>

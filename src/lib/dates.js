@@ -14,25 +14,25 @@ export const shiftIso = (iso, n) => {
   return toIso(d);
 };
 
-const weekdayLong = (d) => d.toLocaleDateString("tr-TR", { weekday: "long" });
-const dayAndMonthLong = (d) => d.getDate() + " " + d.toLocaleDateString("tr-TR", { month: "long" });
-const dayAndMonthShort = (d) => d.getDate() + " " + d.toLocaleDateString("tr-TR", { month: "short" });
+const weekdayLong = (d) => d.toLocaleDateString("en-US", { weekday: "long" });
+const dayAndMonthLong = (d) => d.toLocaleDateString("en-US", { month: "long" }) + " " + d.getDate();
+const dayAndMonthShort = (d) => d.toLocaleDateString("en-US", { month: "short" }) + " " + d.getDate();
 
-// Name of the day relative to today: "Dün", "Bugün", "Yarın" (or null for any other day)
+// Name of the day relative to today: "Yesterday", "Today", "Tomorrow" (or null for any other day)
 export function relativeName(iso, today) {
-  if (iso === today) return "Bugün";
-  if (iso === shiftIso(today, 1)) return "Yarın";
-  if (iso === shiftIso(today, -1)) return "Dün";
+  if (iso === today) return "Today";
+  if (iso === shiftIso(today, 1)) return "Tomorrow";
+  if (iso === shiftIso(today, -1)) return "Yesterday";
   return null;
 }
 
-// Short text for the date chip: "18 Eki Paz"
+// Short text for the date chip: "Oct 18 Sun"
 export function shortDate(iso) {
   const d = fromIso(iso);
-  return dayAndMonthShort(d) + " " + d.toLocaleDateString("tr-TR", { weekday: "short" });
+  return dayAndMonthShort(d) + " " + d.toLocaleDateString("en-US", { weekday: "short" });
 }
 
-// Date group heading: "Bugün  18 Ekim Pazar", "Dün  17 Ekim Cumartesi", "Salı  20 Ekim"
+// Date group heading: "Today  October 18 Sunday", "Yesterday  October 17 Saturday", "Tuesday  October 20"
 export function groupLabel(iso, today) {
   const d = fromIso(iso);
   const long = weekdayLong(d);

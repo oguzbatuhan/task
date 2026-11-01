@@ -10,11 +10,11 @@ const step =
 export default function DayPicker({ days, count = 0, onChange }) {
   const set = cleanDays(days);
   const toggle = (d) => onChange(cleanDays(set.includes(d) ? set.filter((x) => x !== d) : [...set, d]), count);
-  const summary = set.length ? describeDays(set) + (count ? " · " + count + " kez, sonra biter" : " · sürekli") : "";
+  const summary = set.length ? describeDays(set) + (count ? " · " + count + " times, then ends" : " · forever") : "";
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-1" role="group" aria-label="Tekrar günleri">
+      <div className="flex items-center justify-between gap-1" role="group" aria-label="Repeat days">
         {WEEK.map((d) => {
           const picked = set.includes(d);
           return (
@@ -37,14 +37,14 @@ export default function DayPicker({ days, count = 0, onChange }) {
         })}
       </div>
 
-      <div className="flex gap-1 rounded-xl border border-[var(--line)] p-1" role="group" aria-label="Bitiş">
+      <div className="flex gap-1 rounded-xl border border-[var(--line)] p-1" role="group" aria-label="Ends">
         <button
           type="button"
           aria-pressed={!count}
           onClick={() => onChange(set, 0)}
           className={seg + (!count ? "bg-[var(--accent-soft)] text-[var(--fg)]" : "text-[var(--muted)] hover:text-[var(--fg)]")}
         >
-          Sürekli
+          Forever
         </button>
         <button
           type="button"
@@ -52,13 +52,13 @@ export default function DayPicker({ days, count = 0, onChange }) {
           onClick={() => onChange(set, count || 4)}
           className={seg + (count ? "bg-[var(--accent-soft)] text-[var(--fg)]" : "text-[var(--muted)] hover:text-[var(--fg)]")}
         >
-          Belli sayıda
+          A set number
         </button>
       </div>
 
       {count ? (
         <div className="flex items-center justify-center gap-3">
-          <button type="button" aria-label="Azalt" disabled={count <= 1} onClick={() => onChange(set, count - 1)} className={step}>
+          <button type="button" aria-label="Decrease" disabled={count <= 1} onClick={() => onChange(set, count - 1)} className={step}>
             −
           </button>
           <label className="flex items-baseline gap-1.5 text-[0.8125rem] text-[var(--muted)]">
@@ -68,13 +68,13 @@ export default function DayPicker({ days, count = 0, onChange }) {
               min={1}
               max={999}
               value={count}
-              aria-label="Tekrar sayısı"
+              aria-label="Number of repeats"
               onChange={(e) => onChange(set, Math.min(999, Math.max(1, Math.floor(Number(e.target.value)) || 1)))}
               className="tabular w-14 bg-transparent text-center text-xl font-medium text-[var(--fg)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
             />
-            kez
+            times
           </label>
-          <button type="button" aria-label="Artır" disabled={count >= 999} onClick={() => onChange(set, count + 1)} className={step}>
+          <button type="button" aria-label="Increase" disabled={count >= 999} onClick={() => onChange(set, count + 1)} className={step}>
             +
           </button>
         </div>
@@ -89,7 +89,7 @@ export default function DayPicker({ days, count = 0, onChange }) {
         <span className="shrink-0 text-[var(--muted)]">
           <RepeatIcon />
         </span>
-        <span className="min-w-0 truncate">{set.length ? summary : "En az bir gün seç"}</span>
+        <span className="min-w-0 truncate">{set.length ? summary : "Pick at least one day"}</span>
       </div>
     </div>
   );

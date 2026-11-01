@@ -1,41 +1,41 @@
-# Görevler
+# Tasks
 
-React + Tailwind CSS ile yapılmış yapılacaklar listesi (kullanıcıya görünen adı **Görevler**, teknik adı `task`). Görevler tarihlerine göre gruplanır. Tamamlanan görev silinmez, kendi gününde üstü çizili ve soluk kalır. Bugün ve sonrası ana listede görünür; geçmiş günler küçük **Geçmiş** düğmesinin arkasında gizlidir (telefonda alttan açılan sayfa, geniş ekranda sağ panel). İçeride yalnızca görevi olan günler en yeniden en eskiye, aylara ayrılmış sıralanır; en yeni gün açık başlar, diğerleri tek satırdır (gün ve tamamlanan/toplam). 30 günden eskisi için "Daha eski günler" düğmesi vardır. Her göreve istenirse bir saat eklenebilir (ekleme çubuğundaki **Saat ekle** düğmesi). Bir göreve dokununca açılan pencerede adı, günü ve saati değiştirilebilir ya da görev silinebilir. Veriler tarayıcıda saklanır, istersen Google ile giriş yapıp Supabase'e yedeklenir ve cihazlar arasında eşitlenir. GitHub Actions her `main` güncellemesinde siteyi GitHub Pages'e yayınlar.
+A to-do list built with React + Tailwind CSS (user-facing name **Tasks**, technical name `task`). Tasks are grouped by date. A completed task is not deleted; it stays on its own day, struck through and faded. Today and later days appear in the main list; past days are hidden behind a small **History** button (a bottom sheet on phones, a side panel on wide screens). Inside, only days that have tasks are listed, newest to oldest, split by month; the newest day starts open and the others are a single line (day and completed/total). For anything older than 30 days there is an "Older days" button. A time can optionally be added to any task (the **Time** button in the add bar). Tapping a task opens a dialog where you can change its name, day and time, or delete it. Data is stored in the browser; if you like, sign in with Google to back it up to Supabase and sync across devices. GitHub Actions publishes the site to GitHub Pages on every `main` update.
 
-### Kullanım ipuçları
+### Usage tips
 
-- **Hızlı ekleme:** başlığa `yarın`, `bugün` ve `14:30` gibi bir saat yazabilirsin; örn. `yarın 14:30 rapor` → "rapor", yarın, 14:30. Yalnızca başta/sonda yazılan gün sözcüğü ve `SS:DD` saati okunur.
-- **Geciken:** önceki günlerden tamamlanmamış görevler ana listenin en üstünde görünür; **Hepsini bugüne taşı** ile tek dokunuşta bugüne alınır (Geri al ile iptal edilebilir).
-- **Tekrarlayan görev:** ekleme çubuğundaki **Tekrarla** düğmesiyle haftanın belli günlerini seç (Pzt…Paz), ve istediğin günleri işaretle. Tekrar **Sürekli** sürebilir ya da **Belli sayıda** seçip kaç kez tekrarlayacağını (örn. 10 kez) yazabilirsin; sayı dolunca tekrar kendiliğinden biter (Tekrarlayanlar listesinde "Bitti" görünür). Tekrarlar yalnızca **bugün ve yarın** için eklenir ve görünür; daha ileri tarihler günü yarına geldiğinde kendiliğinden oluşur (listede ileri günlerde tekrar görünmez). Seçilen tarih ileri bir gün ise tekrar o tarihe kadar görünmez. Her tekrar normal bir görevdir (tamamlanır, ertelenir, silinir). Listenin altındaki **Tekrarlayanlar** düğmesinden ya da bir tekrarın düzenleme penceresindeki **Tekrarı düzenle**'den ad, saat ve günler değiştirilir; değişiklik bugünden sonraki tamamlanmamış tekrarlara uygulanır, geçmiş ve tamamlananlar değişmez. Tekrarı silince bugünden sonraki tamamlanmamış tekrarlar da silinir.
-- **Geri al:** silinen görev için altta çıkan mesajdan geri alınabilir.
-- **Klavye:** `n` veya `/` yeni görev alanına gider.
+- **Quick add:** you can type `tomorrow`, `today` and a time like `14:30` in the title; e.g. `tomorrow 14:30 report` → "report", tomorrow, 14:30. Only a day word at the start/end and an `HH:MM` time are recognised.
+- **Overdue:** unfinished tasks from earlier days appear at the very top of the main list; **Move all to today** brings them to today in one tap (can be cancelled with Undo).
+- **Recurring task:** use the **Repeat** button in the add bar and mark the weekdays you want (Mon…Sun). A repeat can run **Forever**, or you can choose **A set number** and enter how many times it repeats (e.g. 10 times); when the number is reached the repeat ends by itself ("Ended" shows in the Recurring list). Occurrences are only added and shown for **today and tomorrow**; later dates are created automatically when their day comes up (repeats do not show on days further ahead). If the chosen date is in the future, the repeat does not appear until that date. Every occurrence is an ordinary task (it can be completed, moved, deleted). From the **Recurring** button under the list, or from **Edit repeat** in an occurrence's edit dialog, you can change the name, time and days; the change applies to unfinished occurrences after today, while past and completed ones stay as they are. Deleting a repeat also deletes the unfinished occurrences after today.
+- **Undo:** a deleted task can be restored from the message that appears at the bottom.
+- **Keyboard:** `n` or `/` jumps to the new-task field.
 
-## Yerelde çalıştırma
+## Running locally
 
 ```bash
 npm install
-cp .env.example .env.local   # Supabase URL ve anon anahtarını yaz (üç uygulamada aynı)
+cp .env.example .env.local   # fill in the Supabase URL and anon key (the same in all three apps)
 npm run dev                  # http://localhost:5173
-npm test                     # tarih ve birleştirme mantığı testleri
+npm test                     # date and merge logic tests
 ```
 
-Supabase anahtarları olmadan da uygulama çalışır. Bu durumda bulut yedekleme kapalıdır ve görevler yalnızca tarayıcıda saklanır.
+The app also works without Supabase keys. In that case cloud backup is off and tasks are stored only in the browser.
 
-### Supabase yedekleme kurulumu (bir kez, üç uygulama için ortak)
+### Supabase backup setup (once, shared by the three apps)
 
-Günlük, Akış ve Görevler **aynı Supabase projesini ve aynı tek tabloyu** (`app_backups`) kullanır. Her uygulama tabloda kendi satırına yazar (`app` sütunu: `daily`, `flow`, `task`), bu yüzden veriler karışmaz. Her kullanıcı yalnızca kendi satırlarını görür (RLS).
+Daily, Flow and Tasks use **the same Supabase project and the same single table** (`app_backups`). Each app writes to its own row in the table (`app` column: `daily`, `flow`, `task`), so data never gets mixed up. Each user sees only their own rows (RLS).
 
-1. **Tablo:** Supabase → SQL Editor'a `supabase/setup.sql` dosyasının içeriğini yapıştırıp çalıştır (tekrar çalıştırmak güvenli).
-2. **Google girişi:** Supabase → Authentication → Providers → **Google**'ı aç, Google Cloud'daki OAuth istemcisinin Client ID ve Client Secret değerlerini yaz. Google Cloud'da bu istemcinin **Authorized redirect URIs** listesine Supabase'in gösterdiği `https://<proje>.supabase.co/auth/v1/callback` adresini ekle.
-3. **Yönlendirme adresleri:** Supabase → Authentication → URL Configuration → **Redirect URLs** listesine üç uygulamanın adreslerini ekle (sonda `/` olacak), yerel geliştirme için de `http://localhost:5173/`. Örnek: `https://oguzbatuhan.github.io/daily/`, `https://oguzbatuhan.github.io/flow/`, `https://oguzbatuhan.github.io/task/`.
-4. **Anahtarlar:** Supabase → Project Settings → API'den `Project URL` ve `anon public` anahtarını al. Yerelde `.env.local` içine, yayında deponun **Settings → Secrets and variables → Actions → Variables** bölümüne `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` olarak ekle. Anahtar herkese açık olacak şekilde tasarlanmıştır; veriyi RLS korur. `service_role` anahtarını **asla** kullanma.
+1. **Table:** paste the contents of `supabase/setup.sql` into Supabase → SQL Editor and run it (running it again is safe).
+2. **Google sign-in:** turn on **Google** in Supabase → Authentication → Providers and enter the Client ID and Client Secret of your OAuth client in Google Cloud. In Google Cloud, add the address Supabase shows, `https://<project>.supabase.co/auth/v1/callback`, to that client's **Authorized redirect URIs**.
+3. **Redirect URLs:** add the addresses of the three apps (with a trailing `/`) to Supabase → Authentication → URL Configuration → **Redirect URLs**, plus `http://localhost:5173/` for local development. Example: `https://oguzbatuhan.github.io/daily/`, `https://oguzbatuhan.github.io/flow/`, `https://oguzbatuhan.github.io/task/`.
+4. **Keys:** get the `Project URL` and the `anon public` key from Supabase → Project Settings → API. Put them in `.env.local` locally, and in the repo's **Settings → Secrets and variables → Actions → Variables** for the published site, as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. The key is designed to be public; RLS protects the data. **Never** use the `service_role` key.
 
-Tabloyu başka bir adla açtıysan `VITE_SUPABASE_TABLE` ile adını ver.
+If you created the table under a different name, give its name with `VITE_SUPABASE_TABLE`.
 
-### Eşitleme nasıl çalışır
+### How sync works
 
-- Görevler ve tekrarlayan görev kuralları Supabase'deki ortak `app_backups` tablosuna `app = task` satırı olarak yazılır (eski yedeklerde kural yoktur, sorun olmaz); Günlük ve Akış'ın satırlarına dokunulmaz. Giriş Google ile yapılır.
-- Aynı görev iki cihazda değiştiyse en son değiştirilen kazanır. Silinen görevler 30 gün boyunca silinmiş olarak işaretli kalır, böylece silme diğer cihazlara da ulaşır.
-- Eşitleme, görev değiştikten bir saniye sonra ve sekmeye geri dönüldüğünde çalışır.
-- **Bağlantıyı kes** düğmesi yalnızca bu tarayıcıdaki oturumu kapatır. Supabase'deki yedek durur.
-- Oturum telefonda/tarayıcıda kalıcıdır ve arka planda kendiliğinden yenilenir. Oturum düşerse üstte **Yeniden bağlan** düğmesi çıkar.
+- Tasks and recurring-task rules are written to the shared `app_backups` table in Supabase as the `app = task` row (older backups have no rules, which is fine); the Daily and Flow rows are never touched. Sign-in is with Google.
+- If the same task changed on two devices, the most recent change wins. Deleted tasks stay marked as deleted for 30 days, so the deletion reaches other devices too.
+- Sync runs one second after a task changes and when you return to the tab.
+- The **Disconnect** button only ends the session in this browser. The backup in Supabase stays.
+- The session is persistent on the phone/browser and refreshes itself in the background. If the session drops, a **Reconnect** button appears at the top.

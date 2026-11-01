@@ -88,16 +88,16 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
         onSubmit={submit}
         role="dialog"
         aria-modal="true"
-        aria-label={isRule ? "Tekrarlayan görevi düzenle" : "Görevi düzenle"}
+        aria-label={isRule ? "Edit recurring task" : "Edit task"}
         className="dialog-sheet max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl border border-[var(--line)] bg-[var(--surface)] px-5 pt-5 shadow-2xl sm:rounded-3xl"
         style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-medium">{isRule ? "Tekrarlayan görevi düzenle" : "Görevi düzenle"}</h2>
+          <h2 className="text-base font-medium">{isRule ? "Edit recurring task" : "Edit task"}</h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Kapat"
+            aria-label="Close"
             className="icon-btn -mr-2"
           >
             <CloseIcon />
@@ -112,8 +112,8 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
             onChange={(e) => setTitle(e.target.value)}
             maxLength={120}
             autoComplete="off"
-            aria-label="Görev adı"
-            placeholder="Görev adı"
+            aria-label="Task name"
+            placeholder="Task name"
             className={field + " w-full text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"}
           />
 
@@ -127,7 +127,7 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
               <input
                 type="date"
                 value={date}
-                aria-label="Tarih"
+                aria-label="Date"
                 onChange={(e) => e.target.value && setDate(e.target.value)}
                 onClick={(e) => {
                   try {
@@ -148,12 +148,12 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
                   "tabular flex-1 " + (time ? "" : "text-[var(--muted)]")
                 }
               >
-                {time || "Saat yok"}
+                {time || "No time"}
               </span>
               <input
                 type="time"
                 value={time}
-                aria-label="Saat"
+                aria-label="Time"
                 onChange={(e) => setTime(e.target.value)}
                 onClick={(e) => {
                   try {
@@ -169,7 +169,7 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
                     e.stopPropagation();
                     setTime("");
                   }}
-                  aria-label="Saati kaldır"
+                  aria-label="Remove time"
                   className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]"
                 >
                   <CloseIcon />
@@ -189,7 +189,7 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
                 }}
               />
               <p className="mt-2 text-xs text-[var(--muted)]">
-                Değişiklikler bugünden itibaren, tamamlanmamış tekrarlara uygulanır. Geçmiş ve tamamlanan görevler değişmez.
+                Changes apply from today on, to unfinished occurrences. Past and completed tasks stay as they are.
               </p>
             </div>
           ) : ruleInfo ? (
@@ -199,7 +199,7 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
               </span>
               <span className="min-w-0 flex-1 truncate text-[var(--muted)]">{ruleInfo}</span>
               <button type="button" onClick={onEditRule} className="btn btn-ghost btn-sm">
-                Tekrarı düzenle
+                Edit repeat
               </button>
             </div>
           ) : null}
@@ -208,11 +208,11 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
         {confirming ? (
           <div
             role="alertdialog"
-            aria-label="Silme onayı"
+            aria-label="Confirm deletion"
             className="mt-6 flex flex-wrap items-center gap-2"
           >
             <p className="min-w-0 flex-1 basis-full text-sm sm:basis-0">
-              {isRule ? "Tekrarlayan görev silinsin mi? Bugünden sonraki tamamlanmamış tekrarlar da silinir." : "Bu görev silinsin mi?"}
+              {isRule ? "Delete this recurring task? Unfinished occurrences from today on will be deleted too." : "Delete this task?"}
             </p>
             <button
               ref={cancelRef}
@@ -220,14 +220,14 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
               onClick={() => setConfirming(false)}
               className="btn btn-ghost btn-sm"
             >
-              Vazgeç
+              Cancel
             </button>
             <button
               type="button"
               onClick={() => onDelete(task.id)}
               className="btn btn-warn btn-sm"
             >
-              Evet, sil
+              Yes, delete
             </button>
           </div>
         ) : (
@@ -237,18 +237,18 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
               onClick={() => setConfirming(true)}
               className="btn btn-sm min-w-0 border-[var(--line-strong)] text-[var(--warn)] hover:bg-[var(--hover)]"
             >
-              Sil
+              Delete
             </button>
             <span className="flex-1" aria-hidden="true"></span>
             <button type="button" onClick={onClose} className="btn btn-ghost min-w-0">
-              Vazgeç
+              Cancel
             </button>
             <button
               type="submit"
               aria-disabled={!text || (isRule && !hasRepeat)}
               className={"btn btn-solid min-w-0 " + (text && (!isRule || hasRepeat) ? "" : "opacity-40")}
             >
-              Kaydet
+              Save
             </button>
           </div>
         )}

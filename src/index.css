@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* The font ships with the app (Geist, Latin and Latin-ext only: includes Turkish letters) */
+/* The font ships with the app (Geist, Latin and Latin-ext only: includes accented letters) */
 @font-face {
   font-family: "Geist Variable";
   font-style: normal;

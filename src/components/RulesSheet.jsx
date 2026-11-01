@@ -13,7 +13,7 @@ export function RulesButton({ count, onClick }) {
       className="inline-flex h-9 items-center gap-2 rounded-full border border-[var(--line-strong)] pl-3 pr-3.5 text-[0.8125rem] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--fg)]"
     >
       <RepeatIcon />
-      Tekrarlayanlar
+      Recurring
       <span className="tabular rounded-full bg-[var(--accent-soft)] px-1.5 text-xs leading-5 text-[var(--accent)]">{count}</span>
     </button>
   );
@@ -22,7 +22,7 @@ export function RulesButton({ count, onClick }) {
 // List of recurring tasks; tapping one opens it for editing
 export function RulesSheet({ rules, today, onOpen, onClose }) {
   return (
-    <HistorySheet title="Tekrarlayan görevler" summary={rules.length + " görev"} onClose={onClose}>
+    <HistorySheet title="Recurring tasks" summary={rules.length + (rules.length === 1 ? " task" : " tasks")} onClose={onClose}>
       <ul className="py-1">
         {rules.map((r) => (
           <li key={r.id} className="border-b border-[var(--line)] last:border-b-0">
@@ -33,8 +33,8 @@ export function RulesSheet({ rules, today, onOpen, onClose }) {
                 {r.time ? " · " + r.time : ""}
                 {r.count
                   ? isEnded(r, today)
-                    ? " · Bitti"
-                    : " · " + Math.min(occurrencesUntil(r, today), r.count) + "/" + r.count + " (son: " + shortDate(lastDate(r)) + ")"
+                    ? " · Ended"
+                    : " · " + Math.min(occurrencesUntil(r, today), r.count) + "/" + r.count + " (last: " + shortDate(lastDate(r)) + ")"
                   : ""}
               </span>
             </button>

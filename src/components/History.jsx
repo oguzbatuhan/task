@@ -11,7 +11,7 @@ export function HistoryButton({ count, onClick }) {
       className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] pl-3.5 pr-2 text-[0.8125rem] font-medium text-[var(--fg)] transition-colors active:bg-[var(--hover)] hover:border-[var(--line-strong)]"
     >
       <HistoryIcon />
-      <span>Geçmiş</span>
+      <span>History</span>
       <span className="tabular rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
         {count}
       </span>
@@ -19,7 +19,7 @@ export function HistoryButton({ count, onClick }) {
   );
 }
 
-export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, children }) {
+export function HistorySheet({ title = "History", summary, toolbar, onClose, children }) {
   const panelRef = useRef(null);
   const closeRef = useRef(null);
   const closeFn = useRef(onClose);
@@ -157,7 +157,7 @@ export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, ch
               ref={closeRef}
               type="button"
               onClick={onClose}
-              aria-label="Kapat"
+              aria-label="Close"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--muted)] ring-1 ring-[var(--line)] active:bg-[var(--hover)]"
               onPointerDown={(e) => e.stopPropagation()}
             >
@@ -175,7 +175,7 @@ export function HistorySheet({ title = "Geçmiş", summary, toolbar, onClose, ch
           <button
             type="button"
             onClick={onClose}
-            aria-label="Kapat"
+            aria-label="Close"
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--bg)] text-[var(--muted)] ring-1 ring-[var(--line)] hover:text-[var(--fg)]"
           >
             <CloseIcon />
@@ -217,7 +217,7 @@ export function HistoryToolbar({
           type="search"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Görev veya gün ara…"
+          placeholder="Search tasks or days…"
           enterKeyHint="search"
           className="h-9 w-full rounded-lg border border-[var(--line)] bg-transparent pl-9 pr-8 text-sm outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent)]"
         />
@@ -226,7 +226,7 @@ export function HistoryToolbar({
             type="button"
             onClick={() => onQueryChange("")}
             className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]"
-            aria-label="Aramayı temizle"
+            aria-label="Clear search"
           >
             <CloseIcon />
           </button>
@@ -236,9 +236,9 @@ export function HistoryToolbar({
       <div className="flex flex-wrap items-center gap-1.5">
         <div className="flex gap-0.5">
           {[
-            { id: "all", label: "Tümü" },
-            { id: "done", label: "Tamamlanan" },
-            { id: "pending", label: "Bekleyen" },
+            { id: "all", label: "All" },
+            { id: "done", label: "Completed" },
+            { id: "pending", label: "Pending" },
           ].map((f) => (
             <button
               key={f.id}
@@ -263,14 +263,14 @@ export function HistoryToolbar({
               onClick={onExpandAll}
               className="rounded-lg px-2 py-1 text-xs font-medium text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]"
             >
-              Aç
+              Expand
             </button>
             <button
               type="button"
               onClick={onCollapseAll}
               className="rounded-lg px-2 py-1 text-xs font-medium text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]"
             >
-              Kapat
+              Collapse
             </button>
           </div>
         ) : null}
@@ -321,10 +321,10 @@ export function HistoryDay({ primary, secondary, meta, open, onToggle, children 
 }
 
 export function HistoryEmpty({ query, filter }) {
-  let message = "Geçmişte henüz gün yok.";
-  if (query) message = `"${query}" için sonuç bulunamadı.`;
-  else if (filter === "done") message = "Tamamlanmış görev içeren gün yok.";
-  else if (filter === "pending") message = "Bekleyen görev içeren gün yok.";
+  let message = "No past days yet.";
+  if (query) message = `No results found for "${query}".`;
+  else if (filter === "done") message = "No days with completed tasks.";
+  else if (filter === "pending") message = "No days with pending tasks.";
 
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-14 text-center">
@@ -337,7 +337,7 @@ export function HistoryEmpty({ query, filter }) {
 }
 
 // Infinite scroll sentinel for older history days
-export function HistoryLoadMore({ hasMore, onLoadMore, loadingLabel = "Daha eski günler yükleniyor…" }) {
+export function HistoryLoadMore({ hasMore, onLoadMore, loadingLabel = "Loading older days…" }) {
   const ref = useRef(null);
   const cb = useRef(onLoadMore);
   cb.current = onLoadMore;
@@ -376,7 +376,7 @@ export function HistoryLoadMore({ hasMore, onLoadMore, loadingLabel = "Daha eski
         onClick={() => cb.current()}
         className="btn btn-ghost btn-sm mt-1"
       >
-        Daha eski günler
+        Older days
       </button>
     </div>
   );

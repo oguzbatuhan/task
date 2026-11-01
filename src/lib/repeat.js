@@ -14,9 +14,9 @@ export const RULES_KEY = "task-rules-v1";
 // How many days (today included) recurring tasks are created and shown for: today and tomorrow
 export const HORIZON_DAYS = 2;
 
-// Monday first, as in the Turkish calendar. Values are JS weekdays (0 = Sunday ... 6 = Saturday).
+// Monday first, as in most of Europe. Values are JS weekdays (0 = Sunday ... 6 = Saturday).
 export const WEEK = [1, 2, 3, 4, 5, 6, 0];
-export const DAY_SHORT = { 1: "Pzt", 2: "Sal", 3: "Çar", 4: "Per", 5: "Cum", 6: "Cmt", 0: "Paz" };
+export const DAY_SHORT = { 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 0: "Sun" };
 
 export const cleanDays = (days) =>
   WEEK.filter((d) => Array.isArray(days) && days.includes(d));
@@ -24,10 +24,10 @@ export const cleanDays = (days) =>
 export function describeDays(days) {
   const d = cleanDays(days);
   const key = d.join(",");
-  if (d.length === 7) return "Her gün";
-  if (key === "1,2,3,4,5") return "Hafta içi her gün";
-  if (key === "6,0") return "Hafta sonu";
-  if (d.length === 1) return "Her " + DAY_SHORT[d[0]];
+  if (d.length === 7) return "Every day";
+  if (key === "1,2,3,4,5") return "Every weekday";
+  if (key === "6,0") return "Weekends";
+  if (d.length === 1) return "Every " + DAY_SHORT[d[0]];
   return d.map((x) => DAY_SHORT[x]).join(", ");
 }
 
@@ -63,8 +63,8 @@ export const isEnded = (rule, today) => {
   return Boolean(last) && last < today;
 };
 
-// "Pzt, Çar" / "Pzt, Çar · 10 kez"
-export const describeRule = (rule) => describeDays(rule.days) + (rule.count ? " · " + rule.count + " kez" : "");
+// "Mon, Wed" / "Mon, Wed · 10 times"
+export const describeRule = (rule) => describeDays(rule.days) + (rule.count ? " · " + rule.count + " times" : "");
 
 export function newRule(title, days, start, time = "", count = 0) {
   return {

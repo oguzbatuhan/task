@@ -1,8 +1,8 @@
--- Günlük, Akış ve Görevler için ORTAK tek yedek tablosu.
--- Supabase Dashboard > SQL Editor'a yapıştırıp bir kez çalıştır. Tekrar çalıştırmak güvenlidir.
+-- ONE shared backup table for Daily, Flow and Tasks.
+-- Paste into Supabase Dashboard > SQL Editor and run it once. Running it again is safe.
 --
--- Veriler karışmaz: her uygulama (user_id, app) çiftiyle kendi satırını kullanır
--- ("daily", "flow", "task"). Her kullanıcı yalnızca kendi satırlarını görebilir (RLS).
+-- Data never gets mixed up: each app uses its own row via the (user_id, app) pair
+-- ("daily", "flow", "task"). Each user can only see their own rows (RLS).
 
 create table if not exists public.app_backups (
   user_id    uuid        not null default auth.uid() references auth.users (id) on delete cascade,
