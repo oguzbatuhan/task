@@ -12,7 +12,7 @@ export default function Toast({ toast, onClose }) {
   return (
     <div
       className="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4"
-      style={{ bottom: "max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px))" }}
+      style={{ bottom: "calc(max(12px, env(safe-area-inset-bottom, 0px)) + 5.25rem)" }}
     >
       <div
         role="status"

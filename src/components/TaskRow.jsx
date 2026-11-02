@@ -14,7 +14,7 @@ import { liveSubs } from "../lib/subs.js";
 // Subtasks: shown when the task is tapped open. Ticking is quick here; adding, renaming and removing happen in Edit.
 function Subtasks({ subs, onToggle }) {
   return (
-    <ul className="pb-1.5 pl-9 pr-1">
+    <ul className="pb-1.5 pl-[2.375rem] pr-1">
       {subs.map((s) => (
         <li key={s.id}>
           <button
@@ -63,18 +63,18 @@ export function GroupHead({ primary, secondary, count, progress }) {
   const allDone = total > 0 && done === total;
 
   return (
-    <div className="pb-2">
-      <h2 className="flex items-baseline gap-2 text-sm">
-        <span className="font-medium">{primary}</span>
+    <div className="pb-1">
+      <h2 className="flex items-baseline gap-2 px-1">
+        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--fg)]">{primary}</span>
         {secondary ? (
-          <span className="min-w-0 truncate text-[var(--muted)]">
+          <span className="min-w-0 truncate text-xs text-[var(--muted)]">
             {secondary}
           </span>
         ) : null}
         <span className="flex-1" aria-hidden="true"></span>
         <span
           className={
-            "tabular text-sm " +
+            "tabular text-xs " +
             (allDone ? "text-[var(--accent)]" : "text-[var(--muted)]")
           }
         >
@@ -252,7 +252,7 @@ function TaskRowBase({
       onContextMenu={sortable ? sortable.onContextMenu : undefined}
       className={cls}
     >
-      <div className="flex min-h-12 items-center gap-3 px-1">
+      <div className="flex min-h-[3.25rem] items-center gap-3 px-1">
         <button
           type="button"
           role="checkbox"
@@ -262,15 +262,19 @@ function TaskRowBase({
             task.title
           }
           onClick={handleToggle}
-          className={
-            "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors " +
-            (phase === "checking" ? "check-pop " : "") +
-            (checked
-              ? "done-icon border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
-              : "border-[var(--line-strong)] text-transparent hover:border-[var(--accent)]")
-          }
+          className="group -mr-[11px] flex h-11 w-11 shrink-0 items-center justify-center self-center"
         >
-          <CheckIcon />
+          <span
+            className={
+              "flex h-[1.375rem] w-[1.375rem] items-center justify-center rounded-full border-[1.5px] transition-colors " +
+              (phase === "checking" ? "check-pop " : "") +
+              (checked
+                ? "done-icon border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
+                : "border-[var(--line-strong)] text-transparent group-hover:border-[var(--accent)]")
+            }
+          >
+            <CheckIcon />
+          </span>
         </button>
         <div
           role="button"
@@ -290,7 +294,7 @@ function TaskRowBase({
         >
           <p
             className={
-              "break-words text-[0.9375rem] transition-all duration-300 " +
+              "break-words text-base leading-snug transition-all duration-300 " +
               (checked
                 ? "text-[var(--muted)] line-through opacity-60"
                 : "text-[var(--fg)]")
@@ -351,7 +355,7 @@ function TaskRowBase({
       </div>
 
       {isOpen && task.note ? (
-        <p className="task-in whitespace-pre-wrap break-words pb-2 pl-9 pr-1 text-sm text-[var(--muted)]">
+        <p className="task-in whitespace-pre-wrap break-words pb-2 pl-[2.375rem] pr-1 text-sm text-[var(--muted)]">
           {task.note}
         </p>
       ) : null}
@@ -366,7 +370,7 @@ function TaskRowBase({
       ) : null}
 
       {isOpen ? (
-        <div className="task-in flex items-center gap-3 pb-2.5 pl-9 pr-1">
+        <div className="task-in flex items-center gap-3 pb-2.5 pl-[2.375rem] pr-1">
           {mode === "confirm" ? (
             <div
               role="alertdialog"

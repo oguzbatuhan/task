@@ -1,20 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronIcon, CloseIcon, HistoryIcon, SearchIcon } from "./Icons.jsx";
 
-// Quiet row under the main content. The whole history stays hidden behind it.
+// Quiet icon button in the page header. The whole history stays hidden behind it.
 export function HistoryButton({ count, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-haspopup="dialog"
-      className="inline-flex h-10 items-center gap-2 rounded-full px-3.5 text-[0.8125rem] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--fg)] active:bg-[var(--hover)]"
+      aria-label={"History (" + count + " days)"}
+      title="History"
+      className="icon-btn"
     >
       <HistoryIcon />
-      <span>History</span>
-      <span className="tabular rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--fg)]">
-        {count}
-      </span>
     </button>
   );
 }

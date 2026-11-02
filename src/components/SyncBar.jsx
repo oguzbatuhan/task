@@ -4,7 +4,7 @@ import { AlertIcon, CloudIcon, RefreshIcon, UnlinkIcon } from "./Icons.jsx";
 const pill =
   "inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-[0.8125rem] font-medium transition-colors ";
 const pillNeutral =
-  "border-[var(--line)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--line-strong)] hover:text-[var(--fg)]";
+  "border-transparent text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]";
 const pillAccent = "border-transparent bg-[var(--accent-soft)] text-[var(--accent)] hover:opacity-85";
 const pillWarn = "border-[var(--warn)] text-[var(--warn)] hover:bg-[var(--hover)]";
 const menuItem =
@@ -38,7 +38,7 @@ export default function SyncBar({ sync }) {
     return (
       <button type="button" onClick={connect} className={pill + pillAccent}>
         <CloudIcon />
-        Connect with Google
+        Connect<span className="hidden sm:inline"> with Google</span>
       </button>
     );
   }

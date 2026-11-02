@@ -196,3 +196,11 @@ export function NoteIcon() {
     </svg>
   );
 }
+
+export function ArrowUpIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" {...base}>
+      <path d="M9 14.5v-11M4.5 8L9 3.5 13.5 8" {...stroke} strokeWidth="2" />
+    </svg>
+  );
+}

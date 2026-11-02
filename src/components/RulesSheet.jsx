@@ -3,18 +3,18 @@ import { RepeatIcon } from "./Icons.jsx";
 import { shortDate } from "../lib/dates.js";
 import { describeRule, isEnded, lastDate, occurrencesUntil } from "../lib/repeat.js";
 
-// Small pill under the main content: opens the list of recurring tasks
+// Icon button in the page header: opens the list of recurring tasks
 export function RulesButton({ count, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-haspopup="dialog"
-      className="inline-flex h-9 items-center gap-2 rounded-full border border-[var(--line-strong)] pl-3 pr-3.5 text-[0.8125rem] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--fg)]"
+      aria-label={"Recurring tasks (" + count + ")"}
+      title="Recurring"
+      className="icon-btn"
     >
       <RepeatIcon />
-      Recurring
-      <span className="tabular rounded-full bg-[var(--accent-soft)] px-1.5 text-xs leading-5 text-[var(--accent)]">{count}</span>
     </button>
   );
 }

@@ -236,7 +236,6 @@ export default function App() {
       const el = document.getElementById("composer-input");
       if (!el) return;
       e.preventDefault();
-      window.scrollTo({ top: 0, behavior: "smooth" });
       el.focus({ preventScroll: true });
     };
     window.addEventListener("keydown", onKey);
@@ -324,17 +323,19 @@ export default function App() {
         aria-label={label.primary + " " + label.secondary}
         className={"day-card " + (isToday ? "day-card-today" : "")}
       >
-        <GroupHead
-          primary={label.primary}
-          secondary={label.secondary}
-          count={all.length ? done + "/" + all.length : "0"}
-        />
+        {isToday ? null : (
+          <GroupHead
+            primary={label.primary}
+            secondary={label.secondary}
+            count={all.length ? done + "/" + all.length : "0"}
+          />
+        )}
         {all.length === 0 ? (
-          <p className="py-4 text-center text-sm text-[var(--muted)]">No tasks on this day.</p>
+          <p className="py-3 text-sm text-[var(--muted)]">No tasks on this day.</p>
         ) : items.length === 0 ? (
-          <p className="py-4 text-center text-sm text-[var(--accent)]">All tasks completed ✨</p>
+          <p className="py-3 text-sm text-[var(--muted)]">All tasks completed ✨</p>
         ) : (
-          <div className="mt-1">
+          <div>
             <SortableList
               items={items}
               onReorder={(from, to) => reorder(items, from, to)}
@@ -387,43 +388,45 @@ export default function App() {
   const allStats = historyOpen ? pastStats(allPast) : { total: 0, done: 0 };
 
   return (
-    <main className="mx-auto w-full max-w-xl">
-      <header className="mb-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm text-[var(--muted)]">{todayLabel}</p>
-            <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
+    <main className="mx-auto w-full max-w-xl pb-36">
+      <header className="mb-7">
+        <div className="flex items-center justify-between gap-2">
+          <p className="min-w-0 flex-1 truncate text-sm text-[var(--muted)]">{todayLabel}</p>
+          <div className="-mr-1.5 flex shrink-0 items-center gap-0.5">
+            {liveRules.length > 0 ? <RulesButton count={liveRules.length} onClick={() => setRulesOpen(true)} /> : null}
+            {hasPast ? <HistoryButton count={allPast.length} onClick={openHistory} /> : null}
+            <SyncBar sync={sync} />
           </div>
-          <SyncBar sync={sync} />
         </div>
-        <div className="mt-3 flex items-center gap-3">
-          <div
-            className="progress min-w-0 flex-1 max-w-[12rem] sm:max-w-[14rem]"
-            role="progressbar"
-            aria-label="Today's progress"
-            aria-valuemin={0}
-            aria-valuemax={todayItems.length}
-            aria-valuenow={todayDone}
-          >
-            <span
-              style={{
-                width: (todayItems.length ? (todayDone / todayItems.length) * 100 : 0) + "%",
-              }}
-            />
-          </div>
+        <div className="mt-1 flex items-baseline justify-between gap-3">
+          <h1 className="text-[2.25rem] font-semibold leading-none tracking-tight">Today</h1>
           <p className="tabular shrink-0 text-sm text-[var(--muted)]">
             {todayItems.length === 0
-              ? "No tasks for today"
+              ? "Nothing planned"
               : todayDone === todayItems.length
-                ? "Today done 🎉"
-                : todayDone + "/" + todayItems.length}
+                ? "All done 🎉"
+                : todayDone + " of " + todayItems.length + " done"}
           </p>
+        </div>
+        <div
+          className="progress mt-4"
+          role="progressbar"
+          aria-label="Today's progress"
+          aria-valuemin={0}
+          aria-valuemax={todayItems.length}
+          aria-valuenow={todayDone}
+        >
+          <span
+            style={{
+              width: (todayItems.length ? (todayDone / todayItems.length) * 100 : 0) + "%",
+            }}
+          />
         </div>
       </header>
 
       <Composer today={today} onAdd={add} />
 
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-8">
         {overdue.length > 0 ? (
           <section
             aria-label="Overdue tasks"
@@ -454,18 +457,11 @@ export default function App() {
         ) : null}
         {upcoming.map(renderDay)}
         {upcoming.length === 0 ? (
-          <p className="py-8 text-center text-sm text-[var(--muted)]">
+          <p className="py-16 text-center text-sm text-[var(--muted)]">
             {dates.length === 0
-              ? "No tasks yet. Add your first task above."
+              ? "No tasks yet. Add your first one below."
               : "No tasks for today or later."}
           </p>
-        ) : null}
-
-        {hasPast || liveRules.length > 0 ? (
-          <div className="flex flex-wrap justify-center gap-2.5 pt-1">
-            {liveRules.length > 0 ? <RulesButton count={liveRules.length} onClick={() => setRulesOpen(true)} /> : null}
-            {hasPast ? <HistoryButton count={allPast.length} onClick={openHistory} /> : null}
-          </div>
         ) : null}
       </div>
 
