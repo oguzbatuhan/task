@@ -17,7 +17,13 @@ export function HistoryButton({ count, onClick }) {
   );
 }
 
-export function HistorySheet({ title = "History", summary, toolbar, onClose, children }) {
+export function HistorySheet({
+  title = "History",
+  summary,
+  toolbar,
+  onClose,
+  children,
+}) {
   const panelRef = useRef(null);
   const closeRef = useRef(null);
   const closeFn = useRef(onClose);
@@ -29,7 +35,8 @@ export function HistorySheet({ title = "History", summary, toolbar, onClose, chi
   const drag = useRef(null);
 
   const isMobile = () =>
-    typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 639px)").matches;
 
   useEffect(() => {
     const prevFocus = document.activeElement;
@@ -44,14 +51,24 @@ export function HistorySheet({ title = "History", summary, toolbar, onClose, chi
         return;
       }
       if (e.key !== "Tab" || !panelRef.current) return;
-      const items = [...panelRef.current.querySelectorAll(FOCUSABLE)].filter((n) => !n.disabled && n.offsetParent !== null);
+      const items = [...panelRef.current.querySelectorAll(FOCUSABLE)].filter(
+        (n) => !n.disabled && n.offsetParent !== null,
+      );
       if (items.length === 0) return;
       const first = items[0];
       const last = items[items.length - 1];
-      if (e.shiftKey && (document.activeElement === first || !panelRef.current.contains(document.activeElement))) {
+      if (
+        e.shiftKey &&
+        (document.activeElement === first ||
+          !panelRef.current.contains(document.activeElement))
+      ) {
         e.preventDefault();
         last.focus();
-      } else if (!e.shiftKey && (document.activeElement === last || !panelRef.current.contains(document.activeElement))) {
+      } else if (
+        !e.shiftKey &&
+        (document.activeElement === last ||
+          !panelRef.current.contains(document.activeElement))
+      ) {
         e.preventDefault();
         first.focus();
       }
@@ -60,7 +77,8 @@ export function HistorySheet({ title = "History", summary, toolbar, onClose, chi
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
-      if (prevFocus && prevFocus.focus) prevFocus.focus({ preventScroll: true });
+      if (prevFocus && prevFocus.focus)
+        prevFocus.focus({ preventScroll: true });
     };
   }, []);
 
@@ -112,12 +130,18 @@ export function HistorySheet({ title = "History", summary, toolbar, onClose, chi
     setOffset(0);
   };
 
-  const heightClass = expanded ? "h-[100dvh] rounded-none" : "h-[90dvh] rounded-t-[1.5rem]";
+  const heightClass = expanded
+    ? "h-[100dvh] rounded-none"
+    : "h-[90dvh] rounded-t-[1.5rem]";
 
   return (
     <div
       className="history-backdrop fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/50 sm:items-stretch sm:justify-end"
-      onMouseDown={(e) => e.target === e.currentTarget && Date.now() - openedAt.current > 500 && closeFn.current()}
+      onMouseDown={(e) =>
+        e.target === e.currentTarget &&
+        Date.now() - openedAt.current > 500 &&
+        closeFn.current()
+      }
     >
       <section
         ref={panelRef}
@@ -148,8 +172,9 @@ export function HistorySheet({ title = "History", summary, toolbar, onClose, chi
           </div>
           <header className="flex items-center gap-3 px-5 pb-3 pt-1">
             <div className="min-w-0 flex-1">
-              <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-              
+              <h2 className="text-base font-semibold tracking-tight">
+                {title}
+              </h2>
             </div>
             <button
               ref={closeRef}
@@ -168,7 +193,6 @@ export function HistorySheet({ title = "History", summary, toolbar, onClose, chi
         <header className="hidden shrink-0 items-center gap-3 px-5 pt-4 sm:flex">
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-            
           </div>
           <button
             type="button"
@@ -180,16 +204,22 @@ export function HistorySheet({ title = "History", summary, toolbar, onClose, chi
           </button>
         </header>
 
-        {summary ? <div className="shrink-0 px-5 pb-3 pt-1 sm:pt-3">{summary}</div> : null}
+        {summary ? (
+          <div className="shrink-0 px-5 pb-3 pt-1 sm:pt-3">{summary}</div>
+        ) : null}
 
         {toolbar ? (
-          <div className="shrink-0 border-b border-[var(--line)] px-5 pb-3 pt-1">{toolbar}</div>
+          <div className="shrink-0 border-b border-[var(--line)] px-5 pb-3 pt-1">
+            {toolbar}
+          </div>
         ) : null}
 
         <div
           data-history-scroll
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-5"
-          style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom, 0px))" }}
+          style={{
+            paddingBottom: "max(28px, env(safe-area-inset-bottom, 0px))",
+          }}
         >
           {children}
         </div>
@@ -205,7 +235,9 @@ export function HistoryStats({ days, done, total }) {
     <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3.5 sm:bg-[var(--bg)]">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <div className="tabular text-2xl font-semibold leading-none tracking-tight">{pct}%</div>
+          <div className="tabular text-2xl font-semibold leading-none tracking-tight">
+            {pct}%
+          </div>
           <div className="mt-1 text-xs text-[var(--muted)]">completed</div>
         </div>
         <div className="tabular text-right text-xs leading-relaxed text-[var(--muted)]">
@@ -265,7 +297,11 @@ export function HistoryToolbar({
       </div>
 
       <div className="flex items-center gap-2">
-        <div role="tablist" aria-label="Filter" className="flex rounded-full bg-[var(--bg)] p-0.5 ring-1 ring-[var(--line)] sm:bg-[var(--surface)]">
+        <div
+          role="tablist"
+          aria-label="Filter"
+          className="flex rounded-full bg-[var(--bg)] p-0.5 ring-1 ring-[var(--line)] sm:bg-[var(--surface)]"
+        >
           {filters.map((f) => (
             <button
               key={f.id}
@@ -309,7 +345,16 @@ export function MonthHead({ label, meta }) {
 }
 
 // One past day: date tile, label, mini progress, open/closed state
-export function HistoryDay({ primary, secondary, badge, done = 0, total = 0, open, onToggle, children }) {
+export function HistoryDay({
+  primary,
+  secondary,
+  badge,
+  done = 0,
+  total = 0,
+  open,
+  onToggle,
+  children,
+}) {
   const pct = total ? Math.round((done / total) * 100) : 0;
   const full = total > 0 && done === total;
   return (
@@ -323,13 +368,17 @@ export function HistoryDay({ primary, secondary, badge, done = 0, total = 0, ope
         {badge ? (
           <span className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl bg-[var(--bg)] leading-none ring-1 ring-[var(--line)] sm:bg-[var(--surface)]">
             <span className="tabular text-sm font-semibold">{badge.day}</span>
-            <span className="mt-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--muted)]">{badge.wd}</span>
+            <span className="mt-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--muted)]">
+              {badge.wd}
+            </span>
           </span>
         ) : null}
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm">
             <span className="font-medium text-[var(--fg)]">{primary}</span>
-            {secondary ? <span className="ml-2 text-[var(--muted)]">{secondary}</span> : null}
+            {secondary ? (
+              <span className="ml-2 text-[var(--muted)]">{secondary}</span>
+            ) : null}
           </span>
           <span className="mt-1.5 flex items-center gap-2">
             <span className="progress h-1 flex-1">
@@ -341,12 +390,19 @@ export function HistoryDay({ primary, secondary, badge, done = 0, total = 0, ope
           </span>
         </span>
         <span
-          className={"shrink-0 text-[var(--muted)] transition-transform " + (open ? "rotate-180" : "rotate-0")}
+          className={
+            "shrink-0 text-[var(--muted)] transition-transform " +
+            (open ? "rotate-180" : "rotate-0")
+          }
         >
           <ChevronIcon dir="down" />
         </span>
       </button>
-      {open ? <div className="task-in border-t border-[var(--line)] px-2 py-1.5">{children}</div> : null}
+      {open ? (
+        <div className="task-in border-t border-[var(--line)] px-2 py-1.5">
+          {children}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -368,7 +424,11 @@ export function HistoryEmpty({ query, filter }) {
 }
 
 // Infinite scroll sentinel for older history days
-export function HistoryLoadMore({ hasMore, onLoadMore, loadingLabel = "Loading older days…" }) {
+export function HistoryLoadMore({
+  hasMore,
+  onLoadMore,
+  loadingLabel = "Loading older days…",
+}) {
   const ref = useRef(null);
   const cb = useRef(onLoadMore);
   cb.current = onLoadMore;

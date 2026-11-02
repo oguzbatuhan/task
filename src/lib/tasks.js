@@ -26,6 +26,7 @@ export function newTask(title, date, order = 0, time = "", extra = {}) {
     date,
     time: isValidTime(time) ? time : "",
     done: false,
+    starred: false,
     deleted: false,
     updatedAt: Date.now(),
     order,
@@ -39,7 +40,7 @@ export function newTask(title, date, order = 0, time = "", extra = {}) {
 // Fields that are merged one by one between devices. Every change stamps the fields it touched (task.at[field]),
 // so a rename on one device and a tick on another both survive. A task saved before this existed has no `at`
 // (undefined): all its fields count as changed at updatedAt. subs carry their own timestamps (see subs.js).
-export const FIELDS = ["title", "date", "time", "note", "done", "order", "deleted"];
+export const FIELDS = ["title", "date", "time", "note", "done", "starred", "order", "deleted"];
 
 function cleanAt(at) {
   if (!at || typeof at !== "object") return undefined;
@@ -86,6 +87,7 @@ export function normalizeTasks(list) {
       date: t.date,
       time: isValidTime(t.time) ? t.time : "",
       done: Boolean(t.done),
+      starred: Boolean(t.starred),
       deleted: Boolean(t.deleted),
       updatedAt: Number(t.updatedAt) || 0,
       order: Number(t.order) || 0,

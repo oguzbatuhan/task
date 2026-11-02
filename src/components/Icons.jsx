@@ -204,3 +204,19 @@ export function ArrowUpIcon() {
     </svg>
   );
 }
+
+
+export function StarIcon({ filled = false }) {
+  return (
+    <svg width="19" height="19" viewBox="0 0 20 20" aria-hidden="true">
+      <path
+        d="m10 2.2 2.35 4.76 5.25.76-3.8 3.7.9 5.23L10 14.18l-4.7 2.47.9-5.23-3.8-3.7 5.25-.76L10 2.2Z"
+        fill={filled ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

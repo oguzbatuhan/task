@@ -183,6 +183,10 @@ export default function App() {
     (id) => setTasks((prev) => prev.map((t) => (t.id === id ? patchTask(t, { done: !t.done }) : t))),
     [],
   );
+  const toggleStar = useCallback(
+    (id) => setTasks((prev) => prev.map((t) => (t.id === id ? patchTask(t, { starred: !t.starred }) : t))),
+    [],
+  );
   // Ticking a subtask changes only that subtask (its own timestamp), so it merges cleanly with other devices
   const toggleSubtask = useCallback(
     (id, subId) =>
@@ -348,6 +352,7 @@ export default function App() {
                   onEdit={setEditingId}
                   onRemove={remove}
                   onToggleSub={toggleSubtask}
+                  onToggleStar={toggleStar}
                 />
               )}
             />
@@ -370,6 +375,7 @@ export default function App() {
                     onEdit={setEditingId}
                     onRemove={remove}
                     onToggleSub={toggleSubtask}
+                  onToggleStar={toggleStar}
                   />
                 ))}
               </ul>
@@ -450,6 +456,7 @@ export default function App() {
                   onEdit={setEditingId}
                   onRemove={remove}
                   onToggleSub={toggleSubtask}
+                  onToggleStar={toggleStar}
                 />
               ))}
             </ul>
@@ -510,14 +517,16 @@ export default function App() {
                         {pending.length > 0 ? (
                           <ul>
                             {pending.map((t) => (
-                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} onToggleSub={toggleSubtask} />
+                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} onToggleSub={toggleSubtask}
+                  onToggleStar={toggleStar} />
                             ))}
                           </ul>
                         ) : null}
                         {completed.length > 0 ? (
                           <ul>
                             {completed.map((t) => (
-                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} onToggleSub={toggleSubtask} />
+                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} onToggleSub={toggleSubtask}
+                  onToggleStar={toggleStar} />
                             ))}
                           </ul>
                         ) : null}

@@ -6,6 +6,7 @@ import {
   ListIcon,
   NoteIcon,
   RepeatIcon,
+  StarIcon,
   TrashIcon,
 } from "./Icons.jsx";
 import { shortDate } from "../lib/dates.js";
@@ -65,7 +66,9 @@ export function GroupHead({ primary, secondary, count, progress }) {
   return (
     <div className="pb-1">
       <h2 className="flex items-baseline gap-2 px-1">
-        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--fg)]">{primary}</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--fg)]">
+          {primary}
+        </span>
         {secondary ? (
           <span className="min-w-0 truncate text-xs text-[var(--muted)]">
             {secondary}
@@ -134,6 +137,7 @@ function TaskRowBase({
   onOpen,
   onRemove,
   onToggleSub,
+  onToggleStar,
   dateLabel,
 }) {
   // onOpen: old prop name, so an App.jsx that was not updated still opens the editor
@@ -220,7 +224,7 @@ function TaskRowBase({
 
   const dragging = sortable && sortable.dragging;
   const cls =
-    "relative text-sm " +
+    "relative text-sm my-0.5 " +
     (dragging
       ? "z-10 rounded-lg bg-[var(--surface)] shadow-md "
       : isOpen
@@ -352,6 +356,29 @@ function TaskRowBase({
             </p>
           ) : null}
         </div>
+        {isOpen || task.starred ? (
+          <button
+            type="button"
+            aria-label={
+              task.starred
+                ? "Remove from starred tasks"
+                : "Add to starred tasks"
+            }
+            aria-pressed={Boolean(task.starred)}
+            title={task.starred ? "Starred task" : "Star task"}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStar?.(task.id);
+            }}
+            className={
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--hover)] " +
+              (task.starred ? "text-white" : "text-[var(--fg)]")
+            }
+          >
+            <StarIcon filled={Boolean(task.starred)} />
+          </button>
+        ) : null}
       </div>
 
       {isOpen && task.note ? (
