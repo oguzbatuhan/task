@@ -1,5 +1,13 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { CheckIcon, ChevronIcon, ClockIcon, ListIcon, NoteIcon, RepeatIcon, TrashIcon } from "./Icons.jsx";
+import {
+  CheckIcon,
+  ChevronIcon,
+  ClockIcon,
+  ListIcon,
+  NoteIcon,
+  RepeatIcon,
+  TrashIcon,
+} from "./Icons.jsx";
 import { shortDate } from "../lib/dates.js";
 import { liveSubs } from "../lib/subs.js";
 
@@ -13,15 +21,18 @@ function Subtasks({ subs, onToggle }) {
             type="button"
             role="checkbox"
             aria-checked={s.done}
-            aria-label={(s.done ? "Mark as not completed: " : "Mark as completed: ") + s.title}
+            aria-label={
+              (s.done ? "Mark as not completed: " : "Mark as completed: ") +
+              s.title
+            }
             onClick={() => onToggle(s.id)}
-            className="flex min-h-9 w-full items-center gap-2.5 text-left"
+            className="-ml-2 flex min-h-9 w-[calc(100%+0.5rem)] items-center gap-2.5 rounded-lg px-2 text-left transition-colors hover:bg-[var(--hover)]"
           >
             <span
               className={
                 "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors " +
                 (s.done
-                  ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
+                  ? "done-icon border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
                   : "border-[var(--line-strong)] text-transparent")
               }
             >
@@ -30,7 +41,9 @@ function Subtasks({ subs, onToggle }) {
             <span
               className={
                 "min-w-0 flex-1 break-words text-sm " +
-                (s.done ? "text-[var(--muted)] line-through opacity-60" : "text-[var(--fg)]")
+                (s.done
+                  ? "text-[var(--muted)] line-through opacity-60"
+                  : "text-[var(--fg)]")
               }
             >
               {s.title}
@@ -54,10 +67,17 @@ export function GroupHead({ primary, secondary, count, progress }) {
       <h2 className="flex items-baseline gap-2 text-sm">
         <span className="font-medium">{primary}</span>
         {secondary ? (
-          <span className="min-w-0 truncate text-[var(--muted)]">{secondary}</span>
+          <span className="min-w-0 truncate text-[var(--muted)]">
+            {secondary}
+          </span>
         ) : null}
         <span className="flex-1" aria-hidden="true"></span>
-        <span className={"tabular text-sm " + (allDone ? "text-[var(--accent)]" : "text-[var(--muted)]")}>
+        <span
+          className={
+            "tabular text-sm " +
+            (allDone ? "text-[var(--accent)]" : "text-[var(--muted)]")
+          }
+        >
           {count}
         </span>
       </h2>
@@ -90,7 +110,11 @@ export function DoneHead({ count, open, onToggle }) {
       aria-expanded={open}
       className="mt-2 flex w-full items-center gap-1.5 rounded-lg py-1.5 text-xs font-medium text-[var(--muted)] hover:text-[var(--fg)]"
     >
-      <span className={"inline-flex transition-transform " + (open ? "" : "-rotate-90")}>
+      <span
+        className={
+          "inline-flex transition-transform " + (open ? "" : "-rotate-90")
+        }
+      >
         <ChevronIcon dir="down" />
       </span>
       Completed
@@ -102,7 +126,16 @@ export function DoneHead({ count, open, onToggle }) {
 const CONFIRM_MS = 5000;
 
 // Tapping a task opens a framed info area (day, time, Edit, Delete). Edit opens the edit sheet.
-function TaskRowBase({ task, sortable, onToggle, onEdit, onOpen, onRemove, onToggleSub, dateLabel }) {
+function TaskRowBase({
+  task,
+  sortable,
+  onToggle,
+  onEdit,
+  onOpen,
+  onRemove,
+  onToggleSub,
+  dateLabel,
+}) {
   // onOpen: old prop name, so an App.jsx that was not updated still opens the editor
   const edit = onEdit || onOpen;
   // A long press (drag to reorder) or a move (scroll) must not open the info area
@@ -137,7 +170,8 @@ function TaskRowBase({ task, sortable, onToggle, onEdit, onOpen, onRemove, onTog
   useEffect(() => {
     if (!isOpen) return;
     const onDown = (e) => {
-      const inside = rootRef.current && e.composedPath().includes(rootRef.current);
+      const inside =
+        rootRef.current && e.composedPath().includes(rootRef.current);
       if (!inside) setMode("closed");
     };
     document.addEventListener("click", onDown);
@@ -151,7 +185,8 @@ function TaskRowBase({ task, sortable, onToggle, onEdit, onOpen, onRemove, onTog
       const id = setTimeout(() => setMode("open"), CONFIRM_MS);
       return () => clearTimeout(id);
     }
-    if (mode === "open" && prevMode.current === "confirm") delRef.current?.focus();
+    if (mode === "open" && prevMode.current === "confirm")
+      delRef.current?.focus();
   }, [mode]);
   useEffect(() => {
     prevMode.current = mode;
@@ -218,108 +253,142 @@ function TaskRowBase({ task, sortable, onToggle, onEdit, onOpen, onRemove, onTog
       className={cls}
     >
       <div className="flex min-h-12 items-center gap-3 px-1">
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={checked}
-        aria-label={
-          (checked
-            ? "Mark as not completed: "
-            : "Mark as completed: ") + task.title
-        }
-        onClick={handleToggle}
-        className={
-          "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors " +
-          (phase === "checking" ? "check-pop " : "") +
-          (checked
-            ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
-            : "border-[var(--line-strong)] text-transparent hover:border-[var(--accent)]")
-        }
-      >
-        <CheckIcon />
-      </button>
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={open}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            setMode((m) => (m === "closed" ? "open" : "closed"));
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={checked}
+          aria-label={
+            (checked ? "Mark as not completed: " : "Mark as completed: ") +
+            task.title
           }
-        }}
-        aria-expanded={isOpen}
-        aria-label={"Details: " + task.title + (task.time ? ", at " + task.time : "")}
-        className="flex min-w-0 flex-1 cursor-pointer flex-col justify-center self-stretch py-2"
-      >
-        <p
+          onClick={handleToggle}
           className={
-            "break-words text-[0.9375rem] transition-all duration-300 " +
+            "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors " +
+            (phase === "checking" ? "check-pop " : "") +
             (checked
-              ? "text-[var(--muted)] line-through opacity-60"
-              : "text-[var(--fg)]")
+              ? "done-icon border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
+              : "border-[var(--line-strong)] text-transparent hover:border-[var(--accent)]")
           }
         >
-          {task.title}
-        </p>
-        {task.time || dateLabel || task.ruleId || subs.length || task.note ? (
+          <CheckIcon />
+        </button>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={open}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setMode((m) => (m === "closed" ? "open" : "closed"));
+            }
+          }}
+          aria-expanded={isOpen}
+          aria-label={
+            "Details: " + task.title + (task.time ? ", at " + task.time : "")
+          }
+          className="flex min-w-0 flex-1 cursor-pointer flex-col justify-center self-stretch py-2"
+        >
           <p
             className={
-              "tabular mt-0.5 inline-flex items-center gap-1.5 self-start text-xs font-medium " +
+              "break-words text-[0.9375rem] transition-all duration-300 " +
               (checked
-                ? "text-[var(--muted)] opacity-60"
-                : dateLabel
-                  ? "text-[var(--warn)]"
-                  : "text-[var(--accent)]")
+                ? "text-[var(--muted)] line-through opacity-60"
+                : "text-[var(--fg)]")
             }
           >
-            {dateLabel ? <span>{dateLabel}</span> : null}
-            {task.time ? (
-              <span className="inline-flex items-center gap-1">
-                <ClockIcon />
-                {task.time}
-              </span>
-            ) : null}
-            {task.note ? (
-              <span className="inline-flex items-center" role="img" aria-label="Has a note" title="Has a note">
-                <NoteIcon />
-              </span>
-            ) : null}
-            {subs.length ? (
-              <span className="inline-flex items-center gap-1" title="Subtasks">
-                <ListIcon />
-                {subsDone}/{subs.length}
-              </span>
-            ) : null}
-            {task.ruleId ? (
-              <span className="inline-flex items-center" role="img" aria-label="Recurring task" title="Recurring task">
-                <RepeatIcon />
-              </span>
-            ) : null}
+            {task.title}
           </p>
-        ) : null}
-      </div>
+          {task.time || dateLabel || task.ruleId || subs.length || task.note ? (
+            <p
+              className={
+                "tabular mt-0.5 inline-flex items-center gap-1.5 self-start text-xs font-medium " +
+                (checked
+                  ? "text-[var(--muted)] opacity-60"
+                  : dateLabel
+                    ? "text-[var(--warn)]"
+                    : "text-[var(--accent)]")
+              }
+            >
+              {dateLabel ? <span>{dateLabel}</span> : null}
+              {task.time ? (
+                <span className="inline-flex items-center gap-1">
+                  <ClockIcon />
+                  {task.time}
+                </span>
+              ) : null}
+              {task.note ? (
+                <span
+                  className="inline-flex items-center"
+                  role="img"
+                  aria-label="Has a note"
+                  title="Has a note"
+                >
+                  <NoteIcon />
+                </span>
+              ) : null}
+              {subs.length ? (
+                <span
+                  className="inline-flex items-center gap-1"
+                  title="Subtasks"
+                >
+                  <ListIcon />
+                  {subsDone}/{subs.length}
+                </span>
+              ) : null}
+              {task.ruleId ? (
+                <span
+                  className="inline-flex items-center"
+                  role="img"
+                  aria-label="Recurring task"
+                  title="Recurring task"
+                >
+                  <RepeatIcon />
+                </span>
+              ) : null}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {isOpen && task.note ? (
-        <p className="task-in whitespace-pre-wrap break-words pb-2 pl-9 pr-1 text-sm text-[var(--muted)]">{task.note}</p>
+        <p className="task-in whitespace-pre-wrap break-words pb-2 pl-9 pr-1 text-sm text-[var(--muted)]">
+          {task.note}
+        </p>
       ) : null}
 
       {isOpen && subs.length > 0 && onToggleSub && mode !== "confirm" ? (
         <div className="task-in">
-          <Subtasks subs={subs} onToggle={(subId) => onToggleSub(task.id, subId)} />
+          <Subtasks
+            subs={subs}
+            onToggle={(subId) => onToggleSub(task.id, subId)}
+          />
         </div>
       ) : null}
 
       {isOpen ? (
         <div className="task-in flex items-center gap-3 pb-2.5 pl-9 pr-1">
           {mode === "confirm" ? (
-            <div role="alertdialog" aria-label={"Confirm deletion: " + task.title} className="flex w-full items-center gap-3">
-              <span className="min-w-0 flex-1 text-sm text-[var(--muted)]">Delete?</span>
-              <button ref={cancelRef} type="button" onClick={() => setMode("open")} className="link-btn">
+            <div
+              role="alertdialog"
+              aria-label={"Confirm deletion: " + task.title}
+              className="flex w-full items-center gap-3"
+            >
+              <span className="min-w-0 flex-1 text-sm text-[var(--muted)]">
+                Delete?
+              </span>
+              <button
+                ref={cancelRef}
+                type="button"
+                onClick={() => setMode("open")}
+                className="link-btn"
+              >
                 Cancel
               </button>
-              <button type="button" onClick={() => onRemove(task.id)} className="link-btn text-[var(--warn)] hover:text-[var(--warn)]">
+              <button
+                type="button"
+                onClick={() => onRemove(task.id)}
+                className="link-btn text-[var(--warn)] hover:text-[var(--warn)]"
+              >
                 Delete
               </button>
             </div>

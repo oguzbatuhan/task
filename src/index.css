@@ -72,6 +72,23 @@
 }
 
 @layer components {
+  /* Completed check icon: faded, with a line through it */
+  .done-icon {
+    position: relative;
+    opacity: 0.45;
+  }
+  .done-icon::after {
+    content: "";
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    top: 50%;
+    height: 1.5px;
+    background: var(--muted);
+    border-radius: 1px;
+    transform: translateY(-50%);
+  }
+
   .tabular {
     font-variant-numeric: tabular-nums;
   }
