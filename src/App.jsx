@@ -7,9 +7,10 @@ import EditDialog from "./components/EditDialog.jsx";
 import SortableList from "./components/SortableList.jsx";
 import Toast from "./components/Toast.jsx";
 import { useCloudSync } from "./hooks/useCloudSync.js";
+import { usePersist } from "./hooks/usePersist.js";
 import { groupLabel, relativeName, shiftIso, shortDate, toIso } from "./lib/dates.js";
 import { groupByMonth } from "./lib/history.js";
-import { STORAGE_KEY, cleanNote, loadTasks, newTask } from "./lib/tasks.js";
+import { STORAGE_KEY, cleanNote, loadTasks, maxOrder, newTask, patchTask } from "./lib/tasks.js";
 import { normalizeSubs, toggleSub } from "./lib/subs.js";
 import { RULES_KEY, cleanSubs, describeRule, loadRules, isBeyondWindow, materialize, newRule, nextOccurrence, syncInstances } from "./lib/repeat.js";
 import { RulesButton, RulesSheet } from "./components/RulesSheet.jsx";
@@ -33,22 +34,15 @@ export default function App() {
   const liveRules = useMemo(() => rules.filter((r) => !r.deleted), [rules]);
 
   // Local copy: tasks are kept in this browser even when not connected to the cloud backup
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-    } catch {}
-  }, [tasks]);
-  useEffect(() => {
-    try {
-      localStorage.setItem(RULES_KEY, JSON.stringify(rules));
-    } catch {}
-  }, [rules]);
+  usePersist(STORAGE_KEY, tasks);
+  usePersist(RULES_KEY, rules);
 
-  // Create the tasks of recurring rules for the coming days (also after midnight, a rule change or a cloud sync).
+  // Create the tasks of recurring rules for the coming days (on start, after midnight and when a rule changes, also
+  // one that arrives from the cloud). Task edits cannot make a task missing, so they do not re-run this.
   // Returns the same list when nothing is missing, so this never loops.
   useEffect(() => {
     setTasks((prev) => materialize(prev, rules, today));
-  }, [rules, today, tasks]);
+  }, [rules, today]);
 
   // Update "today" if the page stays open past midnight
   useEffect(() => {
@@ -81,6 +75,16 @@ export default function App() {
   }, [tasks, today]);
 
   const dates = useMemo(() => [...byDate.keys()].sort(), [byDate]);
+  // Unfinished tasks from earlier days: they used to hide in the history, now they stay in sight.
+  // Taken from the already sorted per-day lists, so no extra sorting is needed.
+  const overdue = useMemo(() => {
+    const out = [];
+    for (const d of dates) {
+      if (d >= today) break;
+      for (const t of byDate.get(d)) if (!t.done) out.push(t);
+    }
+    return out;
+  }, [byDate, dates, today]);
   const upcoming = useMemo(
     () => dates.filter((d) => d >= today),
     [dates, today],
@@ -171,33 +175,25 @@ export default function App() {
     addOne(title, date, time, { subs, note });
   };
   const addOne = (title, date, time = "", extra = {}) =>
-    setTasks((prev) => {
-      // A new task is appended to the bottom of that day's list
-      const last = Math.max(
-        0,
-        ...prev
-          .filter((t) => !t.deleted && t.date === date)
-          .map((t) => t.order),
-      );
-      return [...prev, newTask(title, date, last + 1, time, extra)];
-    });
+    // A new task is appended to the bottom of that day's list
+    setTasks((prev) => [...prev, newTask(title, date, maxOrder(prev, date) + 1, time, extra)]);
 
   // Handlers are stable (functional updates only), so memoized task rows do not re-render needlessly
   const toggle = useCallback(
-    (id) => setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done, updatedAt: Date.now() } : t))),
+    (id) => setTasks((prev) => prev.map((t) => (t.id === id ? patchTask(t, { done: !t.done }) : t))),
     [],
   );
   // Ticking a subtask changes only that subtask (its own timestamp), so it merges cleanly with other devices
   const toggleSubtask = useCallback(
     (id, subId) =>
       setTasks((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, subs: toggleSub(t.subs, subId), updatedAt: Date.now() } : t)),
+        prev.map((t) => (t.id === id ? patchTask(t, { subs: toggleSub(t.subs, subId) }) : t)),
       ),
     [],
   );
   const setDeleted = useCallback(
     (id, deleted) =>
-      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, deleted, updatedAt: Date.now() } : t))),
+      setTasks((prev) => prev.map((t) => (t.id === id ? patchTask(t, { deleted }) : t))),
     [],
   );
   const remove = useCallback(
@@ -208,26 +204,13 @@ export default function App() {
     [setDeleted],
   );
 
-  // Unfinished tasks from earlier days: they used to hide in the history, now they stay in sight
-  const overdue = useMemo(
-    () =>
-      tasks
-        .filter((t) => !t.deleted && !t.done && t.date < today)
-        .sort(
-          (a, b) =>
-            a.date.localeCompare(b.date) ||
-            a.order - b.order ||
-            collator.compare(a.title, b.title),
-        ),
-    [tasks, today],
-  );
   const moveOverdueToToday = () => {
     const ids = new Set(overdue.map((t) => t.id));
     const before = new Map(overdue.map((t) => [t.id, t]));
     setTasks((prev) => {
-      let last = Math.max(0, ...prev.filter((t) => !t.deleted && t.date === today).map((t) => t.order));
+      let last = maxOrder(prev, today);
       const now = Date.now();
-      return prev.map((t) => (ids.has(t.id) ? { ...t, date: today, order: ++last, updatedAt: now } : t));
+      return prev.map((t) => (ids.has(t.id) ? patchTask(t, { date: today, order: ++last }, now) : t));
     });
     setToast({
       key: Date.now(),
@@ -236,7 +219,7 @@ export default function App() {
         setTasks((prev) =>
           prev.map((t) => {
             const old = before.get(t.id);
-            return old ? { ...old, updatedAt: Date.now() } : t;
+            return old ? patchTask(t, { date: old.date, order: old.order }) : t;
           }),
         ),
     });
@@ -298,21 +281,9 @@ export default function App() {
       const cur = prev.find((t) => t.id === id);
       if (!cur) return prev;
       // Moved to another day: goes to the bottom of that day's list
-      let order = cur.order;
-      if (date !== cur.date) {
-        order =
-          Math.max(
-            0,
-            ...prev
-              .filter((t) => !t.deleted && t.date === date)
-              .map((t) => t.order),
-          ) + 1;
-      }
-      return prev.map((t) =>
-        t.id === id
-          ? { ...t, title, date, time, note: cleanNote(note), subs: normalizeSubs(subs ?? t.subs), order, updatedAt: Date.now() }
-          : t,
-      );
+      const order = date !== cur.date ? maxOrder(prev, date) + 1 : cur.order;
+      const next = patchTask(cur, { title, date, time, note: cleanNote(note), subs: normalizeSubs(subs ?? cur.subs), order });
+      return next === cur ? prev : prev.map((t) => (t.id === id ? next : t));
     });
     setEditingId(null);
   };
@@ -325,15 +296,9 @@ export default function App() {
   const reorder = (items, from, to) => {
     const ids = items.map((t) => t.id);
     ids.splice(to, 0, ids.splice(from, 1)[0]);
+    const position = new Map(ids.map((id, i) => [id, i + 1]));
     const now = Date.now();
-    setTasks((prev) =>
-      prev.map((t) => {
-        const i = ids.indexOf(t.id);
-        return i < 0 || t.order === i + 1
-          ? t
-          : { ...t, order: i + 1, updatedAt: now };
-      }),
-    );
+    setTasks((prev) => prev.map((t) => (position.has(t.id) ? patchTask(t, { order: position.get(t.id) }, now) : t)));
   };
 
   // Completed-area collapsed state per day (closed by default)

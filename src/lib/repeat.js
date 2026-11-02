@@ -8,7 +8,7 @@
 // computed from the rule (how many rule days lie between its start and that day), so nothing extra has to be stored
 // or synced to know when the rule ends.
 import { fromIso, shiftIso } from "./dates.js";
-import { cleanNote, isValidTime, newTask, uid } from "./tasks.js";
+import { cleanNote, isValidTime, newTask, patchTask, uid } from "./tasks.js";
 import { cleanTitles, subsFromTitles } from "./subs.js";
 
 export const RULES_KEY = "task-rules-v1";
@@ -39,22 +39,34 @@ export const instanceDate = (id) => (id.includes("@") ? id.split("@")[1] : "");
 
 export const cleanCount = (n) => (Number.isInteger(n) && n >= 1 && n <= 999 ? n : 0);
 
-// Day of the count-th occurrence ("" when the rule is endless or has no days)
+// Whole days from one ISO date to another (UTC maths, so daylight-saving changes never matter)
+const dayNumber = (iso) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  return Math.round(Date.UTC(y, m - 1, d) / 86400000);
+};
+
+// Day of the count-th occurrence ("" when the rule is endless or has no days).
+// Every full week from the start holds exactly days.length occurrences, so jump over whole weeks and only walk the last one.
 export function lastDate(rule) {
-  if (!rule.count || !rule.days.length) return "";
-  let date = rule.start;
-  let n = 0;
+  const k = rule.days.length;
+  if (!rule.count || !k) return "";
+  const weeks = Math.floor((rule.count - 1) / k);
+  let left = rule.count - weeks * k;
+  let date = shiftIso(rule.start, weeks * 7);
   for (;;) {
-    if (rule.days.includes(weekdayOf(date)) && ++n === rule.count) return date;
+    if (rule.days.includes(weekdayOf(date)) && --left === 0) return date;
     date = shiftIso(date, 1);
   }
 }
 
-// How many occurrences the rule has had up to and including `date`
+// How many occurrences the rule has had up to and including `date` (counted with arithmetic, not day by day)
 export function occurrencesUntil(rule, date) {
-  if (!rule.days.length) return 0;
-  let n = 0;
-  for (let d = rule.start; d <= date; d = shiftIso(d, 1)) if (rule.days.includes(weekdayOf(d))) n++;
+  const k = rule.days.length;
+  if (!k || date < rule.start) return 0;
+  const len = dayNumber(date) - dayNumber(rule.start) + 1;
+  let n = Math.floor(len / 7) * k;
+  const first = weekdayOf(rule.start);
+  for (let i = 0; i < len % 7; i++) if (rule.days.includes((first + i) % 7)) n++;
   return n;
 }
 
@@ -152,20 +164,18 @@ export function isBeyondWindow(task, today) {
 export function materialize(tasks, rules, today) {
   const active = rules.filter((r) => !r.deleted && r.days.length > 0);
   if (active.length === 0) return tasks;
-  const existing = new Set(tasks.map((t) => t.id));
-  const lastOrder = new Map();
-  const orderOf = (date) => {
-    if (!lastOrder.has(date)) {
-      lastOrder.set(
-        date,
-        Math.max(0, ...tasks.filter((t) => !t.deleted && t.date === date).map((t) => t.order)),
-      );
-    }
-    return lastOrder.get(date);
-  };
+  const window = Array.from({ length: HORIZON_DAYS }, (_, i) => shiftIso(today, i));
+  const inWindow = new Set(window);
+  // One pass over the tasks: which occurrences of the window already exist (even if moved or deleted), and the last
+  // manual position on each day of the window
+  const existing = new Set();
+  const lastOrder = new Map(window.map((d) => [d, 0]));
+  for (const t of tasks) {
+    if (t.ruleId && inWindow.has(instanceDate(t.id))) existing.add(t.id);
+    if (!t.deleted && inWindow.has(t.date) && t.order > lastOrder.get(t.date)) lastOrder.set(t.date, t.order);
+  }
   const added = [];
-  for (let i = 0; i < HORIZON_DAYS; i++) {
-    const date = shiftIso(today, i);
+  for (const date of window) {
     const wd = weekdayOf(date);
     for (const r of active) {
       if (date < r.start || !r.days.includes(wd)) continue;
@@ -173,7 +183,7 @@ export function materialize(tasks, rules, today) {
       const id = instanceId(r.id, date);
       if (existing.has(id)) continue;
       existing.add(id);
-      const order = orderOf(date) + 1;
+      const order = lastOrder.get(date) + 1;
       lastOrder.set(date, order);
       // updatedAt 0: a generated task is only a starting point. If another device already has this day with real
       // edits (ticked subtasks, a changed note ...), those edits must win the merge, never this blank copy.
@@ -207,10 +217,10 @@ export function syncInstances(tasks, rule, today, prev = null) {
       rule.deleted ||
       !rule.days.includes(weekdayOf(origin)) ||
       (rule.count > 0 && occurrencesUntil(rule, origin) > rule.count);
-    if (gone) return { ...t, deleted: true, updatedAt: now };
+    if (gone) return patchTask(t, { deleted: true }, now);
     const subs = subsChanged ? subsFromTitles(t.id, rule.subs, t.subs || [], now) : t.subs;
     const note = noteChanged ? rule.note || "" : t.note;
     if (t.title === rule.title && t.time === rule.time && !subsChanged && !noteChanged) return t;
-    return { ...t, title: rule.title, time: rule.time, subs, note, updatedAt: now };
+    return patchTask(t, { title: rule.title, time: rule.time, subs, note }, now);
   });
 }

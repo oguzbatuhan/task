@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { groupLabel, relativeName, shiftIso } from "../src/lib/dates.js";
-import { isValidTime, mergeTasks, newTask, normalizeTasks, sameTasks } from "../src/lib/tasks.js";
+import { isValidTime, maxOrder, mergeTasks, newTask, normalizeTasks, patchTask, sameTasks } from "../src/lib/tasks.js";
 import { addSub, finalizeSubs, liveSubs, mergeSubs, removeSub, renameSub, subsFromTitles, toggleSub } from "../src/lib/subs.js";
 import { groupByMonth, monthKey, monthLabel } from "../src/lib/history.js";
 
@@ -321,4 +321,64 @@ test("subtasks: new task form values, trimming on save, notes and sameTasks", ()
   // key order or missing fields never make two equal task lists look different
   assert.equal(sameTasks([t], JSON.parse(JSON.stringify([t]))), true);
   assert.equal(sameTasks([t], [{ ...t, note: "changed" }]), false);
+});
+
+test("sync: different fields changed on two devices are both kept (per-field merge)", () => {
+  const T = Date.now();
+  const base = { ...newTask("a", "2026-11-02", 1), updatedAt: T };
+  const phone = patchTask(base, { done: true }, T + 10); // ticked on the phone
+  const laptop = patchTask(base, { title: "renamed", note: "n" }, T + 20); // renamed later on the laptop
+  const merged = mergeTasks([phone], [laptop])[0];
+  assert.equal(merged.done, true);
+  assert.equal(merged.title, "renamed");
+  assert.equal(merged.note, "n");
+  assert.deepEqual(mergeTasks([laptop], [phone]), mergeTasks([phone], [laptop]));
+  // the same field changed on both: the later change wins
+  const later = patchTask(base, { title: "later" }, T + 30);
+  assert.equal(mergeTasks([laptop], [later])[0].title, "later");
+});
+
+test("sync: tasks saved by the old version (no field stamps) still merge, newest whole task wins", () => {
+  const T = Date.now();
+  const old = { ...newTask("a", "2026-11-02", 1), at: undefined, updatedAt: T };
+  const oldNewer = { ...old, title: "b", updatedAt: T + 5 };
+  assert.equal(mergeTasks([old], [oldNewer])[0].title, "b");
+  // legacy vs a patched copy: the field the new version did not touch keeps the legacy (newer) value
+  const patched = patchTask({ ...old, updatedAt: T - 100 }, { done: true }, T + 10);
+  const m = mergeTasks([oldNewer], [patched])[0];
+  assert.equal(m.title, "b");
+  assert.equal(m.done, true);
+});
+
+test("patchTask: no real change returns the very same object; maxOrder works on big lists", () => {
+  const t = newTask("a", "2026-11-02", 3);
+  assert.equal(patchTask(t, { title: "a", order: 3 }), t);
+  assert.notEqual(patchTask(t, { title: "b" }), t);
+  const big = Array.from({ length: 200000 }, (_, i) => ({ ...t, id: String(i), order: i }));
+  assert.equal(maxOrder(big, "2026-11-02"), 199999);
+});
+
+test("repeat: occurrence counting by arithmetic matches day-by-day counting", () => {
+  const slow = (rule, date) => {
+    let n = 0;
+    for (let d = rule.start; d <= date; d = shiftIso(d, 1)) {
+      const wd = new Date(d + "T12:00:00").getDay();
+      if (rule.days.includes(wd)) n++;
+    }
+    return n;
+  };
+  for (const days of [[1], [1, 3], [0, 6], [1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5, 6]]) {
+    for (const start of ["2026-10-26", "2026-10-31", "2026-11-01", "2024-02-28"]) {
+      const rule = newRule("x", days, start);
+      for (let i = 0; i < 60; i++) {
+        const date = shiftIso(start, i);
+        assert.equal(occurrencesUntil(rule, date), slow(rule, date), days + " " + start + " " + date);
+      }
+      for (const count of [1, 2, 3, 5, 8, 13]) {
+        const last = lastDate({ ...rule, count });
+        assert.equal(occurrencesUntil(rule, last), count);
+        assert.equal(occurrencesUntil(rule, shiftIso(last, -1)), count - 1);
+      }
+    }
+  }
 });
