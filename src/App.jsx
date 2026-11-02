@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DoneHead, GroupHead, TaskRow } from "./components/TaskRow.jsx";
-import { HistoryButton, HistoryDay, HistoryEmpty, HistoryLoadMore, HistorySheet, HistoryToolbar, MonthHead } from "./components/History.jsx";
+import { HistoryButton, HistoryDay, HistoryEmpty, HistoryLoadMore, HistorySheet, HistoryStats, HistoryToolbar, MonthHead } from "./components/History.jsx";
 import Composer from "./components/Composer.jsx";
 import SyncBar from "./components/SyncBar.jsx";
 import EditDialog from "./components/EditDialog.jsx";
@@ -8,7 +8,7 @@ import SortableList from "./components/SortableList.jsx";
 import Toast from "./components/Toast.jsx";
 import { useCloudSync } from "./hooks/useCloudSync.js";
 import { usePersist } from "./hooks/usePersist.js";
-import { groupLabel, relativeName, shiftIso, shortDate, toIso } from "./lib/dates.js";
+import { dayBadge, groupLabel, relativeName, shiftIso, shortDate, toIso } from "./lib/dates.js";
 import { groupByMonth } from "./lib/history.js";
 import { STORAGE_KEY, cleanNote, loadTasks, maxOrder, newTask, patchTask } from "./lib/tasks.js";
 import { normalizeSubs, toggleSub } from "./lib/subs.js";
@@ -471,7 +471,7 @@ export default function App() {
 
       {historyOpen && hasPast ? (
         <HistorySheet
-          summary={allPast.length + (allPast.length === 1 ? " day" : " days") + " · " + allStats.done + "/" + allStats.total + " completed"}
+          summary={<HistoryStats days={allPast.length} done={allStats.done} total={allStats.total} />}
           onClose={() => setHistoryOpen(false)}
           toolbar={
             <HistoryToolbar
@@ -479,8 +479,10 @@ export default function App() {
               onQueryChange={setHistoryQuery}
               filter={historyFilter}
               onFilterChange={setHistoryFilter}
-              onExpandAll={() => setOpenDays(new Set(filteredPast))}
-              onCollapseAll={() => setOpenDays(new Set())}
+              allOpen={filteredPast.length > 0 && filteredPast.every((d) => openDays.has(d))}
+              onToggleAll={() =>
+                setOpenDays(filteredPast.every((d) => openDays.has(d)) ? new Set() : new Set(filteredPast))
+              }
               hasDays={filteredPast.length > 0}
             />
           }
@@ -503,7 +505,9 @@ export default function App() {
                         key={date}
                         primary={label.primary}
                         secondary={label.secondary}
-                        meta={completed.length + "/" + all.length}
+                        badge={dayBadge(date)}
+                        done={completed.length}
+                        total={all.length}
                         open={openDays.has(date)}
                         onToggle={() => toggleDay(date)}
                       >

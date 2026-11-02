@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarIcon, ClockIcon, CloseIcon, NoteIcon, PlusIcon, RepeatIcon } from "./Icons.jsx";
 import DayPicker from "./DayPicker.jsx";
 import SubDraft from "./SubDraft.jsx";
@@ -6,12 +6,12 @@ import { describeDays } from "../lib/repeat.js";
 import { relativeName, shiftIso, shortDate } from "../lib/dates.js";
 import { parseQuick } from "../lib/quickadd.js";
 
-const chip =
-  "relative inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-[0.8125rem] font-medium transition-colors ";
-const chipOff =
-  "border-[var(--line-strong)] text-[var(--muted)] active:bg-[var(--hover)] hover:bg-[var(--hover)] hover:text-[var(--fg)]";
-const chipOn =
-  "border-transparent bg-[var(--accent-soft)] text-[var(--accent)]";
+// Minimal tool buttons: icon only when unset, icon + value when set
+const tool =
+  "inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full text-[0.8125rem] font-medium transition-colors ";
+const toolOff =
+  "w-9 text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)] active:bg-[var(--hover)]";
+const toolOn = "bg-[var(--accent-soft)] px-3 text-[var(--fg)]";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINS = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
@@ -148,30 +148,38 @@ export default function Composer({ today, onAdd }) {
   const inputRef = useRef(null);
   const dateRef = useRef(null);
   const tomorrow = shiftIso(today, 1);
-  const custom = date !== today && date !== tomorrow;
   const empty = !title.trim();
+
+  // Live quick-add: "tomorrow 14:30 report" lights up the day and time right while typing
+  const quick = useMemo(() => (empty ? null : parseQuick(title, today, tomorrow)), [title, empty, today, tomorrow]);
+  const effDate = quick?.date || date;
+  const effTime = quick?.time || time;
+  const custom = effDate !== today && effDate !== tomorrow;
 
   useEffect(() => setDate(today), [today]);
 
   function submit(e) {
-    e.preventDefault();
+    e?.preventDefault();
     const text = title.trim();
     if (!text) {
       inputRef.current?.focus();
       return;
     }
-    const q = parseQuick(text, today, tomorrow);
-    onAdd(q.title, q.date || date, q.time || time, days, count, subs, note);
+    onAdd(quick.title, effDate, effTime, days, count, subs, note);
+    reset();
+    // blur so mobile keyboard closes after add
+    inputRef.current?.blur();
+  }
+
+  function reset() {
     setTitle("");
+    setDate(today);
     setTime("");
     setNote("");
     setSubs([]);
     setDetailsOpen(false);
     setRepeat([], 0);
     setRepeatOpen(false);
-    setDate(today);
-    // blur so mobile keyboard closes after add
-    inputRef.current?.blur();
   }
 
   function clearExtras() {
@@ -186,152 +194,161 @@ export default function Composer({ today, onAdd }) {
 
   const hasDetails = !!note.trim() || subs.length > 0;
   const hasExtras = date !== today || !!time || repeating || hasDetails;
+  const dayBtn = (on) =>
+    "h-7 rounded-full px-3 text-[0.8125rem] font-medium transition-colors " +
+    (on ? "bg-[var(--fg)] text-[var(--bg)]" : "text-[var(--muted)] hover:text-[var(--fg)]");
 
   return (
-    <form onSubmit={submit} className="mb-5">
-      <div className="flex items-center gap-2 rounded-full border border-[var(--line-strong)] bg-[var(--surface)] py-1 pl-4 pr-1 transition-colors focus-within:border-[var(--accent)]">
-        <input
-          ref={inputRef}
-          id="composer-input"
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={120}
-          autoComplete="off"
-          enterKeyHint="done"
-          aria-label="New task"
-          placeholder="Add a task…"
-          className="min-w-0 flex-1 bg-transparent py-2.5 text-[0.9375rem] text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"
-        />
-        <button
-          type="submit"
-          aria-label="Add task"
-          className={
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)] transition-opacity " +
-            (empty ? "opacity-35" : "active:opacity-80")
-          }
-        >
-          <PlusIcon />
-        </button>
-      </div>
+    <form onSubmit={submit} className="mb-6">
+      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow)] transition-colors focus-within:border-[var(--line-strong)]">
+        <div className="flex items-center gap-3 px-4 pt-3.5">
+          <span
+            aria-hidden="true"
+            className="flex h-[1.375rem] w-[1.375rem] shrink-0 rounded-full border-[1.5px] border-[var(--line-strong)]"
+          />
+          <input
+            ref={inputRef}
+            id="composer-input"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                if (title || hasExtras) reset();
+                e.currentTarget.blur();
+              }
+            }}
+            maxLength={120}
+            autoComplete="off"
+            enterKeyHint="done"
+            aria-label="New task"
+            placeholder="New task…  try “tomorrow 14:30 report”"
+            className="min-w-0 flex-1 bg-transparent py-1 text-base text-[var(--fg)] outline-none placeholder:text-[var(--muted)]/70 sm:text-[1rem]"
+          />
+        </div>
 
-      {/* Options always visible — more reliable on mobile than focus-gated chips */}
-      <div className="mt-2.5 flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <button
-          type="button"
-          onClick={() => setDate(today)}
-          className={"shrink-0 " + chip + (date === today ? chipOn : chipOff)}
-        >
-          Today
-        </button>
-        <button
-          type="button"
-          onClick={() => setDate(tomorrow)}
-          className={"shrink-0 " + chip + (date === tomorrow ? chipOn : chipOff)}
-        >
-          Tomorrow
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            const el = dateRef.current;
-            if (!el) return;
-            try {
-              el.showPicker();
-            } catch {
-              el.click();
-            }
-          }}
-          className={"shrink-0 " + chip + (custom ? chipOn : chipOff)}
-        >
-          <CalendarIcon />
-          <span className="whitespace-nowrap">
-            {custom ? relativeName(date, today) || shortDate(date) : "Date"}
-          </span>
-        </button>
-        {/* Native date input kept off-layout for picker API */}
-        <input
-          ref={dateRef}
-          type="date"
-          value={date}
-          min={today}
-          aria-hidden="true"
-          tabIndex={-1}
-          onChange={(e) => e.target.value && setDate(e.target.value)}
-          className="pointer-events-none absolute h-0 w-0 opacity-0"
-        />
-        <button
-          type="button"
-          onClick={() => setTimeOpen(true)}
-          className={"shrink-0 " + chip + (time ? chipOn : chipOff)}
-        >
-          <ClockIcon />
-          <span className="tabular whitespace-nowrap">{time || "Time"}</span>
-        </button>
-        <button
-          type="button"
-          aria-expanded={repeatOpen}
-          onClick={() => setRepeatOpen((o) => !o)}
-          className={"shrink-0 " + chip + (repeating || repeatOpen ? chipOn : chipOff)}
-        >
-          <RepeatIcon />
-          <span className="max-w-[9rem] truncate whitespace-nowrap">
-            {days.length ? describeDays(days) + (count ? " ×" + count : "") : "Repeat"}
-          </span>
-        </button>
-        <button
-          type="button"
-          aria-expanded={detailsOpen}
-          onClick={() => setDetailsOpen((o) => !o)}
-          className={"shrink-0 " + chip + (hasDetails || detailsOpen ? chipOn : chipOff)}
-        >
-          <NoteIcon />
-          <span className="tabular whitespace-nowrap">
-            {hasDetails ? "Details · " + ((note.trim() ? 1 : 0) + subs.length) : "Details"}
-          </span>
-        </button>
-        {hasExtras ? (
+        {/* Tool row: always visible (reliable on mobile), quiet until used */}
+        <div className="flex items-center gap-1 px-2.5 pb-2.5 pt-2">
+          <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="mr-1 flex shrink-0 items-center rounded-full bg-[var(--bg)] p-0.5 ring-1 ring-[var(--line)]">
+              <button type="button" aria-pressed={effDate === today} onClick={() => setDate(today)} className={dayBtn(effDate === today)}>
+                Today
+              </button>
+              <button type="button" aria-pressed={effDate === tomorrow} onClick={() => setDate(tomorrow)} className={dayBtn(effDate === tomorrow)}>
+                Tomorrow
+              </button>
+            </div>
+            <button
+              type="button"
+              aria-label="Pick a date"
+              onClick={() => {
+                const el = dateRef.current;
+                if (!el) return;
+                try {
+                  el.showPicker();
+                } catch {
+                  el.click();
+                }
+              }}
+              className={tool + (custom ? toolOn : toolOff)}
+            >
+              <CalendarIcon />
+              {custom ? <span className="whitespace-nowrap">{relativeName(effDate, today) || shortDate(effDate)}</span> : null}
+            </button>
+            {/* Native date input kept off-layout for picker API */}
+            <input
+              ref={dateRef}
+              type="date"
+              value={effDate}
+              min={today}
+              aria-hidden="true"
+              tabIndex={-1}
+              onChange={(e) => e.target.value && setDate(e.target.value)}
+              className="pointer-events-none absolute h-0 w-0 opacity-0"
+            />
+            <button type="button" aria-label="Set a time" onClick={() => setTimeOpen(true)} className={tool + (effTime ? toolOn : toolOff)}>
+              <ClockIcon />
+              {effTime ? <span className="tabular whitespace-nowrap">{effTime}</span> : null}
+            </button>
+            <button
+              type="button"
+              aria-label="Repeat"
+              aria-expanded={repeatOpen}
+              onClick={() => setRepeatOpen((o) => !o)}
+              className={tool + (repeating ? toolOn : repeatOpen ? "w-9 bg-[var(--hover)] text-[var(--fg)]" : toolOff)}
+            >
+              <RepeatIcon />
+              {repeating ? (
+                <span className="max-w-[9rem] truncate whitespace-nowrap">
+                  {describeDays(days) + (count ? " ×" + count : "")}
+                </span>
+              ) : null}
+            </button>
+            <button
+              type="button"
+              aria-label="Details"
+              aria-expanded={detailsOpen}
+              onClick={() => setDetailsOpen((o) => !o)}
+              className={tool + (hasDetails ? toolOn : detailsOpen ? "w-9 bg-[var(--hover)] text-[var(--fg)]" : toolOff)}
+            >
+              <NoteIcon />
+              {hasDetails ? <span className="tabular whitespace-nowrap">{(note.trim() ? 1 : 0) + subs.length}</span> : null}
+            </button>
+            {hasExtras ? (
+              <button
+                type="button"
+                onClick={clearExtras}
+                className="ml-1 shrink-0 rounded-full px-2 py-1 text-xs text-[var(--muted)] hover:text-[var(--fg)]"
+              >
+                Reset
+              </button>
+            ) : null}
+          </div>
           <button
-            type="button"
-            onClick={clearExtras}
-            className="shrink-0 px-2 text-xs text-[var(--muted)] active:text-[var(--fg)]"
+            type="submit"
+            aria-label="Add task"
+            className={
+              "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[var(--accent)] pl-3 pr-3.5 text-[0.8125rem] font-semibold text-[var(--accent-fg)] transition-opacity " +
+              (empty ? "opacity-30" : "active:opacity-80")
+            }
           >
-            Reset
+            <PlusIcon />
+            Add
           </button>
+        </div>
+
+        {repeatOpen ? (
+          <div className="task-in border-t border-[var(--line)] p-3.5">
+            <DayPicker days={days} count={count} onChange={setRepeat} />
+            {repeating ? (
+              <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">
+                {(effDate > tomorrow ? "Starts on " + shortDate(effDate) + ". " : "") +
+                  "Only shown for today and tomorrow; later days are added when they come up."}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {detailsOpen ? (
+          <div className="task-in border-t border-[var(--line)] p-3.5">
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={1000}
+              rows={2}
+              aria-label="Description"
+              placeholder="Description (optional)"
+              className="w-full resize-none rounded-xl border border-[var(--line)] bg-[var(--bg)] px-3.5 py-2.5 text-base text-[var(--fg)] outline-none transition-colors placeholder:text-[var(--muted)] focus:border-[var(--line-strong)] sm:text-[0.9375rem]"
+            />
+            <div className="mt-2.5">
+              <SubDraft subs={subs} onChange={setSubs} repeating={repeating} />
+            </div>
+          </div>
         ) : null}
       </div>
 
-      {repeatOpen ? (
-        <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3.5 shadow-[var(--shadow)]">
-          <DayPicker days={days} count={count} onChange={setRepeat} />
-          {repeating ? (
-            <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">
-              {(date > tomorrow ? "Starts on " + shortDate(date) + ". " : "") +
-                "Only shown for today and tomorrow; later days are added when they come up."}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {detailsOpen ? (
-        <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3.5 shadow-[var(--shadow)]">
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            maxLength={1000}
-            rows={2}
-            aria-label="Description"
-            placeholder="Description (optional)"
-            className="w-full resize-none rounded-xl border border-[var(--line-strong)] bg-[var(--bg)] px-3.5 py-2.5 text-base text-[var(--fg)] outline-none transition-colors placeholder:text-[var(--muted)] focus:border-[var(--accent)] sm:text-[0.9375rem]"
-          />
-          <div className="mt-2.5">
-            <SubDraft subs={subs} onChange={setSubs} repeating={repeating} />
-          </div>
-        </div>
-      ) : null}
-
       {timeOpen ? (
-        <TimeSheet value={time} onChange={setTime} onClose={() => setTimeOpen(false)} />
+        <TimeSheet value={effTime} onChange={setTime} onClose={() => setTimeOpen(false)} />
       ) : null}
     </form>
   );

@@ -1,18 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronIcon, CloseIcon, HistoryIcon, SearchIcon } from "./Icons.jsx";
 
-// Small pill under the main content. The whole history stays hidden behind it.
+// Quiet row under the main content. The whole history stays hidden behind it.
 export function HistoryButton({ count, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-haspopup="dialog"
-      className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] pl-3.5 pr-2 text-[0.8125rem] font-medium text-[var(--fg)] transition-colors active:bg-[var(--hover)] hover:border-[var(--line-strong)]"
+      className="inline-flex h-10 items-center gap-2 rounded-full px-3.5 text-[0.8125rem] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--fg)] active:bg-[var(--hover)]"
     >
       <HistoryIcon />
       <span>History</span>
-      <span className="tabular rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
+      <span className="tabular rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--fg)]">
         {count}
       </span>
     </button>
@@ -151,7 +151,7 @@ export function HistorySheet({ title = "History", summary, toolbar, onClose, chi
           <header className="flex items-center gap-3 px-5 pb-3 pt-1">
             <div className="min-w-0 flex-1">
               <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-              {summary ? <p className="tabular mt-0.5 text-[11px] text-[var(--muted)]">{summary}</p> : null}
+              
             </div>
             <button
               ref={closeRef}
@@ -167,10 +167,10 @@ export function HistorySheet({ title = "History", summary, toolbar, onClose, chi
         </div>
 
         {/* Desktop header */}
-        <header className="hidden shrink-0 items-center gap-3 border-b border-[var(--line)] px-5 py-4 sm:flex">
+        <header className="hidden shrink-0 items-center gap-3 px-5 pt-4 sm:flex">
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-            {summary ? <p className="tabular mt-0.5 text-xs text-[var(--muted)]">{summary}</p> : null}
+            
           </div>
           <button
             type="button"
@@ -182,8 +182,10 @@ export function HistorySheet({ title = "History", summary, toolbar, onClose, chi
           </button>
         </header>
 
+        {summary ? <div className="shrink-0 px-5 pb-3 pt-1 sm:pt-3">{summary}</div> : null}
+
         {toolbar ? (
-          <div className="shrink-0 border-b border-[var(--line)] px-5 py-3">{toolbar}</div>
+          <div className="shrink-0 border-b border-[var(--line)] px-5 pb-3 pt-1">{toolbar}</div>
         ) : null}
 
         <div
@@ -198,19 +200,50 @@ export function HistorySheet({ title = "History", summary, toolbar, onClose, chi
   );
 }
 
+// Summary strip: completion rate with a bar, plus day and task counts
+export function HistoryStats({ days, done, total }) {
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  return (
+    <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3.5 sm:bg-[var(--bg)]">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <div className="tabular text-2xl font-semibold leading-none tracking-tight">{pct}%</div>
+          <div className="mt-1 text-xs text-[var(--muted)]">completed</div>
+        </div>
+        <div className="tabular text-right text-xs leading-relaxed text-[var(--muted)]">
+          <div>
+            <span className="text-[var(--fg)]">{done}</span> of {total} tasks
+          </div>
+          <div>
+            {days} {days === 1 ? "day" : "days"}
+          </div>
+        </div>
+      </div>
+      <div className="progress mt-3">
+        <span style={{ width: pct + "%" }} />
+      </div>
+    </div>
+  );
+}
+
 export function HistoryToolbar({
   query,
   onQueryChange,
   filter,
   onFilterChange,
-  onExpandAll,
-  onCollapseAll,
+  allOpen,
+  onToggleAll,
   hasDays,
 }) {
+  const filters = [
+    { id: "all", label: "All" },
+    { id: "done", label: "Completed" },
+    { id: "pending", label: "Pending" },
+  ];
   return (
     <div className="flex flex-col gap-2.5">
       <div className="relative">
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]">
+        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]">
           <SearchIcon />
         </span>
         <input
@@ -219,7 +252,7 @@ export function HistoryToolbar({
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="Search tasks or days…"
           enterKeyHint="search"
-          className="h-9 w-full rounded-lg border border-[var(--line)] bg-transparent pl-9 pr-8 text-sm outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent)]"
+          className="h-10 w-full rounded-xl border border-transparent bg-[var(--surface)] pl-10 pr-9 text-base outline-none placeholder:text-[var(--muted)] focus:border-[var(--line-strong)] sm:bg-[var(--bg)] sm:text-sm [&::-webkit-search-cancel-button]:hidden"
         />
         {query ? (
           <button
@@ -233,21 +266,19 @@ export function HistoryToolbar({
         ) : null}
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5">
-        <div className="flex gap-0.5">
-          {[
-            { id: "all", label: "All" },
-            { id: "done", label: "Completed" },
-            { id: "pending", label: "Pending" },
-          ].map((f) => (
+      <div className="flex items-center gap-2">
+        <div role="tablist" aria-label="Filter" className="flex rounded-full bg-[var(--bg)] p-0.5 ring-1 ring-[var(--line)] sm:bg-[var(--surface)]">
+          {filters.map((f) => (
             <button
               key={f.id}
               type="button"
+              role="tab"
+              aria-selected={filter === f.id}
               onClick={() => onFilterChange(f.id)}
               className={
-                "rounded-full px-2.5 py-1 text-xs font-medium transition-colors " +
+                "h-7 rounded-full px-3 text-xs font-medium transition-colors " +
                 (filter === f.id
-                  ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                  ? "bg-[var(--fg)] text-[var(--bg)]"
                   : "text-[var(--muted)] hover:text-[var(--fg)]")
               }
             >
@@ -255,24 +286,14 @@ export function HistoryToolbar({
             </button>
           ))}
         </div>
-
         {hasDays ? (
-          <div className="ml-auto flex gap-1">
-            <button
-              type="button"
-              onClick={onExpandAll}
-              className="rounded-lg px-2 py-1 text-xs font-medium text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]"
-            >
-              Expand
-            </button>
-            <button
-              type="button"
-              onClick={onCollapseAll}
-              className="rounded-lg px-2 py-1 text-xs font-medium text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]"
-            >
-              Collapse
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onToggleAll}
+            className="ml-auto rounded-full px-2.5 py-1 text-xs font-medium text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]"
+          >
+            {allOpen ? "Collapse all" : "Expand all"}
+          </button>
         ) : null}
       </div>
     </div>
@@ -282,40 +303,52 @@ export function HistoryToolbar({
 // Month heading inside the list; sticks to the top while that month scrolls
 export function MonthHead({ label, meta }) {
   return (
-    <h3 className="sticky top-0 z-[1] -mx-4 flex items-baseline gap-2 bg-[var(--bg)]/95 px-4 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)] backdrop-blur-md sm:-mx-5 sm:bg-[var(--surface)]/95 sm:px-5">
-      <span>{label}</span>
-      <span className="h-px min-w-[1rem] flex-1 bg-[var(--line)]" aria-hidden="true" />
-      <span className="tabular font-medium normal-case tracking-normal">{meta}</span>
+    <h3 className="sticky top-0 z-[1] -mx-4 flex items-baseline justify-between gap-2 bg-[var(--bg)]/95 px-5 pb-1.5 pt-4 text-xs font-semibold text-[var(--muted)] backdrop-blur-md sm:-mx-5 sm:bg-[var(--surface)]/95 sm:px-6">
+      <span className="uppercase tracking-wider">{label}</span>
+      <span className="tabular font-medium">{meta}</span>
     </h3>
   );
 }
 
-export function HistoryDay({ primary, secondary, meta, open, onToggle, children }) {
+// One past day: date tile, label, mini progress, open/closed state
+export function HistoryDay({ primary, secondary, badge, done = 0, total = 0, open, onToggle, children }) {
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const full = total > 0 && done === total;
   return (
-    <section className="border-b border-[var(--line)] last:border-b-0">
+    <section className="my-1.5 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] sm:bg-[var(--bg)]">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex min-h-[3rem] w-full items-center gap-2.5 rounded-xl px-1 py-2.5 text-left text-sm transition-colors active:bg-[var(--hover)] hover:bg-[var(--hover)]"
+        className="flex min-h-[3.5rem] w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--hover)] active:bg-[var(--hover)]"
       >
+        {badge ? (
+          <span className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl bg-[var(--bg)] leading-none ring-1 ring-[var(--line)] sm:bg-[var(--surface)]">
+            <span className="tabular text-sm font-semibold">{badge.day}</span>
+            <span className="mt-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--muted)]">{badge.wd}</span>
+          </span>
+        ) : null}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm">
+            <span className="font-medium text-[var(--fg)]">{primary}</span>
+            {secondary ? <span className="ml-2 text-[var(--muted)]">{secondary}</span> : null}
+          </span>
+          <span className="mt-1.5 flex items-center gap-2">
+            <span className="progress h-1 flex-1">
+              <span style={{ width: pct + "%", opacity: full ? 1 : 0.6 }} />
+            </span>
+            <span className="tabular shrink-0 text-[11px] text-[var(--muted)]">
+              {done}/{total}
+            </span>
+          </span>
+        </span>
         <span
-          className={
-            "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--muted)] ring-1 ring-[var(--line)] transition-transform " +
-            (open ? "rotate-0" : "-rotate-90")
-          }
+          className={"shrink-0 text-[var(--muted)] transition-transform " + (open ? "rotate-180" : "rotate-0")}
         >
           <ChevronIcon dir="down" />
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="font-medium text-[var(--fg)]">{primary}</span>
-          {secondary ? (
-            <span className="ml-2 text-[var(--muted)]">{secondary}</span>
-          ) : null}
-        </span>
-        <span className="tabular shrink-0 text-xs text-[var(--muted)]">{meta}</span>
       </button>
-      {open ? <div className="task-in pb-3 pl-9">{children}</div> : null}
+      {open ? <div className="task-in border-t border-[var(--line)] px-2 py-1.5">{children}</div> : null}
     </section>
   );
 }

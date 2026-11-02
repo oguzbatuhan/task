@@ -39,3 +39,9 @@ export function groupLabel(iso, today) {
   const rel = relativeName(iso, today);
   return { primary: rel || long, secondary: dayAndMonthLong(d) + (rel ? " " + long : "") };
 }
+
+// Small date tile for history rows: { day: "18", wd: "Sun" }
+export function dayBadge(iso) {
+  const d = fromIso(iso);
+  return { day: String(d.getDate()), wd: d.toLocaleDateString("en-US", { weekday: "short" }) };
+}
