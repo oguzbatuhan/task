@@ -188,3 +188,11 @@ export function ListIcon() {
     </svg>
   );
 }
+
+export function NoteIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 14 14" {...base}>
+      <path d="M2.5 4h9M2.5 7h9M2.5 10h5.5" {...stroke} strokeWidth="1.6" />
+    </svg>
+  );
+}

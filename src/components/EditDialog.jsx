@@ -19,6 +19,7 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
   const [title, setTitle] = useState(task.title);
   const [date, setDate] = useState(task.date);
   const [time, setTime] = useState(task.time || "");
+  const [note, setNote] = useState(task.note || "");
   const [confirming, setConfirming] = useState(false);
   const inputRef = useRef(null);
   const cancelRef = useRef(null);
@@ -73,9 +74,9 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
     if (!text) return inputRef.current && inputRef.current.focus();
     if (isRule) {
       if (!hasRepeat) return;
-      return onSave(task.id, { title: text, time, days, count, subs });
+      return onSave(task.id, { title: text, time, days, count, subs, note });
     }
-    onSave(task.id, { title: text, date, time });
+    onSave(task.id, { title: text, date, time, note });
   }
 
   return (
@@ -117,6 +118,16 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
             aria-label="Task name"
             placeholder="Task name"
             className={field + " w-full text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"}
+          />
+
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={1000}
+            rows={3}
+            aria-label="Note"
+            placeholder="Note (optional)"
+            className={field + " h-auto w-full resize-none py-2.5 text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"}
           />
 
           <div className={"grid gap-2.5 [&>*]:min-w-0 " + (isRule ? "grid-cols-1" : "grid-cols-2")}>

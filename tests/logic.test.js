@@ -229,3 +229,17 @@ test("recurring subtasks: copied to new occurrences, replaced only when the rule
   const out = syncInstances(tasks, changed, today, rule)[0].subs;
   assert.deepEqual(out.map((s) => [s.title, s.done]), [["Warm up", true], ["Lift", false]]);
 });
+
+test("notes: normalize, copy to occurrences, replaced only when the rule's note changes", async () => {
+  const { newRule, materialize, syncInstances } = await import("../src/lib/repeat.js");
+  const [old] = normalizeTasks([{ id: "x", title: "t", date: "2026-10-19" }]);
+  assert.equal(old.note, "");
+  assert.equal(normalizeTasks([{ id: "y", title: "t", date: "2026-10-19", note: "  hi  " }])[0].note, "hi");
+  const today = "2026-11-02";
+  const rule = newRule("Gym", [1, 2], today, "", 0, [], "bring towel");
+  let tasks = materialize([], [rule], today);
+  assert.equal(tasks[0].note, "bring towel");
+  tasks = tasks.map((t, i) => (i === 0 ? { ...t, note: "custom" } : t));
+  assert.equal(syncInstances(tasks, { ...rule, title: "Gym!" }, today, rule)[0].note, "custom");
+  assert.equal(syncInstances(tasks, { ...rule, note: "new" }, today, rule)[0].note, "new");
+});

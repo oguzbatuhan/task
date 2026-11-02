@@ -9,7 +9,7 @@ import Toast from "./components/Toast.jsx";
 import { useCloudSync } from "./hooks/useCloudSync.js";
 import { groupLabel, relativeName, shiftIso, shortDate, toIso } from "./lib/dates.js";
 import { groupByMonth } from "./lib/history.js";
-import { STORAGE_KEY, loadTasks, newTask } from "./lib/tasks.js";
+import { STORAGE_KEY, cleanNote, loadTasks, newTask } from "./lib/tasks.js";
 import { RULES_KEY, cleanSubs, describeRule, loadRules, isBeyondWindow, materialize, newRule, nextOccurrence, syncInstances } from "./lib/repeat.js";
 import { RulesButton, RulesSheet } from "./components/RulesSheet.jsx";
 
@@ -267,10 +267,10 @@ export default function App() {
     if (liveRules.length === 0) setRulesOpen(false);
   }, [liveRules.length]);
 
-  const saveRule = (id, { title, time, days, count, subs }) => {
+  const saveRule = (id, { title, time, days, count, subs, note }) => {
     const cur = rules.find((r) => r.id === id);
     if (!cur) return;
-    const next = { ...cur, title, time, days, count, subs: cleanSubs(subs), updatedAt: Date.now() };
+    const next = { ...cur, title, time, days, count, subs: cleanSubs(subs), note: cleanNote(note), updatedAt: Date.now() };
     setRules((prev) => prev.map((r) => (r.id === id ? next : r)));
     setTasks((prev) => syncInstances(prev, next, today, cur));
     setEditingRuleId(null);
@@ -285,7 +285,7 @@ export default function App() {
     setToast({ key: Date.now(), message: "Recurring task deleted" });
   };
 
-  const save = (id, { title, date, time }) => {
+  const save = (id, { title, date, time, note }) => {
     setTasks((prev) => {
       const cur = prev.find((t) => t.id === id);
       if (!cur) return prev;
@@ -302,7 +302,7 @@ export default function App() {
       }
       return prev.map((t) =>
         t.id === id
-          ? { ...t, title, date, time, order, updatedAt: Date.now() }
+          ? { ...t, title, date, time, note: cleanNote(note), order, updatedAt: Date.now() }
           : t,
       );
     });

@@ -22,9 +22,12 @@ export function normalizeSubs(list) {
     .map((s) => ({ id: s.id, title: s.title, done: Boolean(s.done) }));
 }
 
+// note: optional free-text description ("" when none)
+export const cleanNote = (v) => (typeof v === "string" ? v.trim().slice(0, 1000) : "");
+
 // ruleId: set on tasks that a recurring rule created ("" for ordinary tasks)
 export function newTask(title, date, order = 0, time = "") {
-  return { id: uid(), title, date, time: isValidTime(time) ? time : "", done: false, deleted: false, updatedAt: Date.now(), order, ruleId: "", subs: [] };
+  return { id: uid(), title, date, time: isValidTime(time) ? time : "", done: false, deleted: false, updatedAt: Date.now(), order, ruleId: "", subs: [], note: "" };
 }
 
 export function normalizeTasks(list) {
@@ -42,6 +45,7 @@ export function normalizeTasks(list) {
       order: Number(t.order) || 0,
       ruleId: typeof t.ruleId === "string" ? t.ruleId : "",
       subs: normalizeSubs(t.subs),
+      note: cleanNote(t.note),
     }));
 }
 

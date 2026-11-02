@@ -8,7 +8,7 @@
 // computed from the rule (how many rule days lie between its start and that day), so nothing extra has to be stored
 // or synced to know when the rule ends.
 import { fromIso, shiftIso } from "./dates.js";
-import { isValidTime, newTask, uid } from "./tasks.js";
+import { cleanNote, isValidTime, newTask, uid } from "./tasks.js";
 
 export const RULES_KEY = "task-rules-v1";
 // How many days (today included) recurring tasks are created and shown for: today and tomorrow
@@ -80,9 +80,10 @@ const subsFor = (rule, id, old = []) =>
     done: old.some((o) => o.title === title && o.done),
   }));
 
-export function newRule(title, days, start, time = "", count = 0, subs = []) {
+export function newRule(title, days, start, time = "", count = 0, subs = [], note = "") {
   return {
     subs: cleanSubs(subs),
+    note: cleanNote(note),
     id: uid(),
     title,
     days: cleanDays(days),
@@ -105,6 +106,7 @@ export function normalizeRules(list) {
       count: cleanCount(r.count),
       time: isValidTime(r.time) ? r.time : "",
       subs: cleanSubs(r.subs),
+      note: cleanNote(r.note),
       start: r.start,
       deleted: Boolean(r.deleted),
       updatedAt: Number(r.updatedAt) || 0,
@@ -183,7 +185,7 @@ export function materialize(tasks, rules, today) {
       existing.add(id);
       const order = orderOf(date) + 1;
       lastOrder.set(date, order);
-      added.push({ ...newTask(r.title, date, order, r.time), id, ruleId: r.id, subs: subsFor(r, id) });
+      added.push({ ...newTask(r.title, date, order, r.time), id, ruleId: r.id, subs: subsFor(r, id), note: r.note || "" });
     }
   }
   return added.length ? [...tasks, ...added] : tasks;
@@ -196,6 +198,7 @@ export function materialize(tasks, rules, today) {
 // so subtasks someone ticked or edited on a single day survive a plain rename. Ticks are kept by title.
 export function syncInstances(tasks, rule, today, prev = null) {
   const now = Date.now();
+  const noteChanged = Boolean(prev) && (prev.note || "") !== (rule.note || "");
   const subsChanged = prev && JSON.stringify(cleanSubs(prev.subs)) !== JSON.stringify(rule.subs || []);
   return tasks.map((t) => {
     if (t.ruleId !== rule.id || t.deleted || t.done || t.date < today) return t;
@@ -207,7 +210,8 @@ export function syncInstances(tasks, rule, today, prev = null) {
       (rule.count > 0 && occurrencesUntil(rule, origin) > rule.count);
     if (gone) return { ...t, deleted: true, updatedAt: now };
     const subs = subsChanged ? subsFor(rule, t.id, t.subs || []) : t.subs;
-    if (t.title === rule.title && t.time === rule.time && !subsChanged) return t;
-    return { ...t, title: rule.title, time: rule.time, subs, updatedAt: now };
+    const note = noteChanged ? rule.note || "" : t.note;
+    if (t.title === rule.title && t.time === rule.time && !subsChanged && !noteChanged) return t;
+    return { ...t, title: rule.title, time: rule.time, subs, note, updatedAt: now };
   });
 }

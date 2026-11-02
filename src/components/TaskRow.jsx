@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckIcon, ChevronIcon, ClockIcon, ListIcon, RepeatIcon, TrashIcon } from "./Icons.jsx";
+import { CheckIcon, ChevronIcon, ClockIcon, ListIcon, NoteIcon, RepeatIcon, TrashIcon } from "./Icons.jsx";
 import { shortDate } from "../lib/dates.js";
 import { uid } from "../lib/tasks.js";
 
@@ -289,7 +289,7 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, on
         >
           {task.title}
         </p>
-        {task.time || dateLabel || task.ruleId || subs.length ? (
+        {task.time || dateLabel || task.ruleId || subs.length || task.note ? (
           <p
             className={
               "tabular mt-0.5 inline-flex items-center gap-1.5 self-start text-xs font-medium " +
@@ -307,6 +307,11 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, on
                 {task.time}
               </span>
             ) : null}
+            {task.note ? (
+              <span className="inline-flex items-center" role="img" aria-label="Has a note" title="Has a note">
+                <NoteIcon />
+              </span>
+            ) : null}
             {subs.length ? (
               <span className="inline-flex items-center gap-1" title="Subtasks">
                 <ListIcon />
@@ -322,6 +327,10 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, on
         ) : null}
       </div>
       </div>
+
+      {isOpen && task.note ? (
+        <p className="task-in whitespace-pre-wrap break-words pb-2 pl-9 pr-1 text-sm text-[var(--muted)]">{task.note}</p>
+      ) : null}
 
       {isOpen && onSubs && mode !== "confirm" ? (
         <div className="task-in">
