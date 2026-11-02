@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CalendarIcon, ClockIcon, CloseIcon, PlusIcon, RepeatIcon } from "./Icons.jsx";
 import DayPicker from "./DayPicker.jsx";
+import SubDraft from "./SubDraft.jsx";
 import { describeDays } from "../lib/repeat.js";
 import { relativeName, shiftIso, shortDate } from "../lib/dates.js";
 import { parseQuick } from "../lib/quickadd.js";
@@ -134,10 +135,12 @@ export default function Composer({ today, onAdd }) {
   const [repeatOpen, setRepeatOpen] = useState(false);
   const [days, setDays] = useState([]);
   const [count, setCount] = useState(0); // 0 = repeats forever, otherwise ends after this many times
+  const [subs, setSubs] = useState([]); // subtasks every occurrence of a repeating task starts with
   const repeating = days.length > 0;
   const setRepeat = (d, n) => {
     setDays(d);
     setCount(n);
+    if (d.length === 0) setSubs([]);
   };
   const [timeOpen, setTimeOpen] = useState(false);
   const inputRef = useRef(null);
@@ -156,7 +159,7 @@ export default function Composer({ today, onAdd }) {
       return;
     }
     const q = parseQuick(text, today, tomorrow);
-    onAdd(q.title, q.date || date, q.time || time, days, count);
+    onAdd(q.title, q.date || date, q.time || time, days, count, subs);
     setTitle("");
     setTime("");
     setRepeat([], 0);
@@ -281,6 +284,11 @@ export default function Composer({ today, onAdd }) {
       {repeatOpen ? (
         <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3.5 shadow-[var(--shadow)]">
           <DayPicker days={days} count={count} onChange={setRepeat} />
+          {repeating ? (
+            <div className="mt-3 border-t border-[var(--line)] pt-2.5">
+              <SubDraft subs={subs} onChange={setSubs} />
+            </div>
+          ) : null}
           {repeating ? (
             <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">
               {(date > tomorrow ? "Starts on " + shortDate(date) + ". " : "") +

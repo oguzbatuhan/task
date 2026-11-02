@@ -180,3 +180,11 @@ export function SearchIcon() {
     </svg>
   );
 }
+
+export function ListIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 14 14" {...base}>
+      <path d="M5 3.5h7M5 7h7M5 10.5h7M2 3.5h.01M2 7h.01M2 10.5h.01" {...stroke} strokeWidth="1.6" />
+    </svg>
+  );
+}

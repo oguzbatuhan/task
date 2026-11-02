@@ -1,6 +1,73 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckIcon, ChevronIcon, ClockIcon, RepeatIcon, TrashIcon } from "./Icons.jsx";
+import { CheckIcon, ChevronIcon, ClockIcon, ListIcon, RepeatIcon, TrashIcon } from "./Icons.jsx";
 import { shortDate } from "../lib/dates.js";
+import { uid } from "../lib/tasks.js";
+
+// Subtasks: shown only when the task is tapped open. A plain checklist with one input line.
+function Subtasks({ subs, onChange }) {
+  const [text, setText] = useState("");
+  const add = (e) => {
+    e.preventDefault();
+    const title = text.trim();
+    if (!title) return;
+    onChange([...subs, { id: uid(), title, done: false }]);
+    setText("");
+  };
+  return (
+    <div className="pb-1.5 pl-9 pr-1">
+      {subs.length > 0 ? (
+        <ul>
+          {subs.map((s) => (
+            <li key={s.id} className="flex min-h-9 items-center gap-2.5">
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={s.done}
+                aria-label={(s.done ? "Mark as not completed: " : "Mark as completed: ") + s.title}
+                onClick={() => onChange(subs.map((x) => (x.id === s.id ? { ...x, done: !x.done } : x)))}
+                className={
+                  "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors " +
+                  (s.done
+                    ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
+                    : "border-[var(--line-strong)] text-transparent hover:border-[var(--accent)]")
+                }
+              >
+                <CheckIcon />
+              </button>
+              <span
+                className={
+                  "min-w-0 flex-1 break-words text-sm " +
+                  (s.done ? "text-[var(--muted)] line-through opacity-60" : "text-[var(--fg)]")
+                }
+              >
+                {s.title}
+              </span>
+              <button
+                type="button"
+                aria-label={"Remove subtask: " + s.title}
+                onClick={() => onChange(subs.filter((x) => x.id !== s.id))}
+                className="link-btn !px-1.5"
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <form onSubmit={add}>
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Add subtask"
+          aria-label="Add subtask"
+          maxLength={200}
+          enterKeyHint="done"
+          className="h-9 w-full bg-transparent text-sm text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"
+        />
+      </form>
+    </div>
+  );
+}
 
 // Date heading: day on the left, count on the right; thin progress under
 export function GroupHead({ primary, secondary, count, progress }) {
@@ -62,7 +129,7 @@ export function DoneHead({ count, open, onToggle }) {
 const CONFIRM_MS = 5000;
 
 // Tapping a task opens a framed info area (day, time, Edit, Delete). Edit opens the edit sheet.
-export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, dateLabel }) {
+export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, onSubs, dateLabel }) {
   // onOpen: old prop name, so an App.jsx that was not updated still opens the editor
   const edit = onEdit || onOpen;
   // A long press (drag to reorder) or a move (scroll) must not open the info area
@@ -140,6 +207,8 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, da
   };
 
   const checked = task.done || phase !== "idle";
+  const subs = task.subs || [];
+  const subsDone = subs.filter((x) => x.done).length;
 
   const dragging = sortable && sortable.dragging;
   const cls =
@@ -220,7 +289,7 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, da
         >
           {task.title}
         </p>
-        {task.time || dateLabel || task.ruleId ? (
+        {task.time || dateLabel || task.ruleId || subs.length ? (
           <p
             className={
               "tabular mt-0.5 inline-flex items-center gap-1.5 self-start text-xs font-medium " +
@@ -238,6 +307,12 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, da
                 {task.time}
               </span>
             ) : null}
+            {subs.length ? (
+              <span className="inline-flex items-center gap-1" title="Subtasks">
+                <ListIcon />
+                {subsDone}/{subs.length}
+              </span>
+            ) : null}
             {task.ruleId ? (
               <span className="inline-flex items-center" role="img" aria-label="Recurring task" title="Recurring task">
                 <RepeatIcon />
@@ -247,6 +322,12 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, da
         ) : null}
       </div>
       </div>
+
+      {isOpen && onSubs && mode !== "confirm" ? (
+        <div className="task-in">
+          <Subtasks subs={subs} onChange={(next) => onSubs(task.id, next)} />
+        </div>
+      ) : null}
 
       {isOpen ? (
         <div className="task-in flex items-center gap-3 pb-2.5 pl-9 pr-1">

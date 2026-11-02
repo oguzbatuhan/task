@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CalendarIcon, ClockIcon, CloseIcon, RepeatIcon } from "./Icons.jsx";
 import DayPicker from "./DayPicker.jsx";
+import SubDraft from "./SubDraft.jsx";
 import { shortDate } from "../lib/dates.js";
 
 const field =
@@ -13,6 +14,7 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
   const isRule = mode === "rule";
   const [days, setDays] = useState(task.days || []);
   const [count, setCount] = useState(task.count || 0);
+  const [subs, setSubs] = useState(task.subs || []); // rule mode only
   const hasRepeat = days.length > 0;
   const [title, setTitle] = useState(task.title);
   const [date, setDate] = useState(task.date);
@@ -71,7 +73,7 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
     if (!text) return inputRef.current && inputRef.current.focus();
     if (isRule) {
       if (!hasRepeat) return;
-      return onSave(task.id, { title: text, time, days, count });
+      return onSave(task.id, { title: text, time, days, count, subs });
     }
     onSave(task.id, { title: text, date, time });
   }
@@ -188,6 +190,9 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
                   setCount(n);
                 }}
               />
+              <div className="mt-3 border-t border-[var(--line)] pt-2.5">
+                <SubDraft subs={subs} onChange={setSubs} />
+              </div>
               <p className="mt-2 text-xs text-[var(--muted)]">
                 Changes apply from today on, to unfinished occurrences. Past and completed tasks stay as they are.
               </p>

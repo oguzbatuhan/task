@@ -66,8 +66,23 @@ export const isEnded = (rule, today) => {
 // "Mon, Wed" / "Mon, Wed · 10 times"
 export const describeRule = (rule) => describeDays(rule.days) + (rule.count ? " · " + rule.count + " times" : "");
 
-export function newRule(title, days, start, time = "", count = 0) {
+// Subtask titles of a rule: plain strings, trimmed, at most 20
+export const cleanSubs = (list) =>
+  Array.isArray(list)
+    ? list.filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim().slice(0, 200)).slice(0, 20)
+    : [];
+
+// The checklist a generated task starts with
+const subsFor = (rule, id, old = []) =>
+  (rule.subs || []).map((title, i) => ({
+    id: id + "#" + i,
+    title,
+    done: old.some((o) => o.title === title && o.done),
+  }));
+
+export function newRule(title, days, start, time = "", count = 0, subs = []) {
   return {
+    subs: cleanSubs(subs),
     id: uid(),
     title,
     days: cleanDays(days),
@@ -89,6 +104,7 @@ export function normalizeRules(list) {
       days: cleanDays(r.days),
       count: cleanCount(r.count),
       time: isValidTime(r.time) ? r.time : "",
+      subs: cleanSubs(r.subs),
       start: r.start,
       deleted: Boolean(r.deleted),
       updatedAt: Number(r.updatedAt) || 0,
@@ -167,7 +183,7 @@ export function materialize(tasks, rules, today) {
       existing.add(id);
       const order = orderOf(date) + 1;
       lastOrder.set(date, order);
-      added.push({ ...newTask(r.title, date, order, r.time), id, ruleId: r.id });
+      added.push({ ...newTask(r.title, date, order, r.time), id, ruleId: r.id, subs: subsFor(r, id) });
     }
   }
   return added.length ? [...tasks, ...added] : tasks;
@@ -176,8 +192,11 @@ export function materialize(tasks, rules, today) {
 // Applies a rule change (new title/time/days, or deletion) to the tasks it already created:
 // from today on, unfinished tasks follow the new title/time, and the ones on days that are no longer part
 // of the rule are removed. Finished and past tasks are never touched.
-export function syncInstances(tasks, rule, today) {
+// `prev` (the rule before the change) lets the subtasks be replaced only when the rule's subtasks really changed,
+// so subtasks someone ticked or edited on a single day survive a plain rename. Ticks are kept by title.
+export function syncInstances(tasks, rule, today, prev = null) {
   const now = Date.now();
+  const subsChanged = prev && JSON.stringify(cleanSubs(prev.subs)) !== JSON.stringify(rule.subs || []);
   return tasks.map((t) => {
     if (t.ruleId !== rule.id || t.deleted || t.done || t.date < today) return t;
     const origin = instanceDate(t.id) || t.date;
@@ -187,7 +206,8 @@ export function syncInstances(tasks, rule, today) {
       !rule.days.includes(weekdayOf(origin)) ||
       (rule.count > 0 && occurrencesUntil(rule, origin) > rule.count);
     if (gone) return { ...t, deleted: true, updatedAt: now };
-    if (t.title === rule.title && t.time === rule.time) return t;
-    return { ...t, title: rule.title, time: rule.time, updatedAt: now };
+    const subs = subsChanged ? subsFor(rule, t.id, t.subs || []) : t.subs;
+    if (t.title === rule.title && t.time === rule.time && !subsChanged) return t;
+    return { ...t, title: rule.title, time: rule.time, subs, updatedAt: now };
   });
 }

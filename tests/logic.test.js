@@ -195,3 +195,37 @@ test("repeat: a rule can end after a number of occurrences", () => {
   assert.equal(shorter.length, 0);
   assert.equal(normalizeRules([{ ...rule, count: 5000 }])[0].count, 0);
 });
+
+test("subtasks: old data gets none, bad entries dropped, survive merge", () => {
+  const [old] = normalizeTasks([{ id: "x", title: "t", date: "2026-10-19" }]);
+  assert.deepEqual(old.subs, []);
+  const [t] = normalizeTasks([
+    { id: "y", title: "t", date: "2026-10-19", subs: [{ id: "a", title: "one", done: 1 }, { id: "b", title: "  " }, null, { title: "no id" }] },
+  ]);
+  assert.deepEqual(t.subs, [{ id: "a", title: "one", done: true }]);
+  const newer = { ...t, subs: [], updatedAt: 5 };
+  assert.deepEqual(mergeTasks([{ ...t, updatedAt: 1 }], [newer])[0].subs, []);
+  assert.deepEqual(newTask("n", "2026-10-19").subs, []);
+});
+
+test("recurring subtasks: copied to new occurrences, replaced only when the rule's subtasks change", async () => {
+  const { newRule, materialize, syncInstances, normalizeRules } = await import("../src/lib/repeat.js");
+  const today = "2026-11-02"; // Monday
+  const rule = newRule("Gym", [1, 2], today, "", 0, ["Warm up", "  ", "Stretch"]);
+  assert.deepEqual(rule.subs, ["Warm up", "Stretch"]);
+  assert.deepEqual(normalizeRules([{ ...rule, subs: undefined }])[0].subs, []);
+
+  let tasks = materialize([], [rule], today);
+  assert.equal(tasks.length, 2);
+  assert.deepEqual(tasks[0].subs.map((s) => s.title), ["Warm up", "Stretch"]);
+
+  // tick one on a single day; a plain rename keeps it
+  tasks = tasks.map((t, i) => (i === 0 ? { ...t, subs: t.subs.map((s, j) => (j === 0 ? { ...s, done: true } : s)) } : t));
+  const renamed = { ...rule, title: "Gym!" };
+  assert.equal(syncInstances(tasks, renamed, today, rule)[0].subs[0].done, true);
+
+  // changing the rule's subtasks replaces them but keeps ticks by title
+  const changed = { ...rule, subs: ["Warm up", "Lift"] };
+  const out = syncInstances(tasks, changed, today, rule)[0].subs;
+  assert.deepEqual(out.map((s) => [s.title, s.done]), [["Warm up", true], ["Lift", false]]);
+});

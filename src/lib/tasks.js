@@ -13,9 +13,18 @@ export function uid() {
 // time: optional "HH:MM" (24h) or "" when the task has no set time
 export const isValidTime = (v) => typeof v === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
 
+// subs: simple checklist inside a task, [{ id, title, done }]. They live inside the task, so they
+// sync, merge and get deleted together with it (no separate records to keep in step).
+export function normalizeSubs(list) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((s) => s && typeof s.id === "string" && typeof s.title === "string" && s.title.trim())
+    .map((s) => ({ id: s.id, title: s.title, done: Boolean(s.done) }));
+}
+
 // ruleId: set on tasks that a recurring rule created ("" for ordinary tasks)
 export function newTask(title, date, order = 0, time = "") {
-  return { id: uid(), title, date, time: isValidTime(time) ? time : "", done: false, deleted: false, updatedAt: Date.now(), order, ruleId: "" };
+  return { id: uid(), title, date, time: isValidTime(time) ? time : "", done: false, deleted: false, updatedAt: Date.now(), order, ruleId: "", subs: [] };
 }
 
 export function normalizeTasks(list) {
@@ -32,6 +41,7 @@ export function normalizeTasks(list) {
       updatedAt: Number(t.updatedAt) || 0,
       order: Number(t.order) || 0,
       ruleId: typeof t.ruleId === "string" ? t.ruleId : "",
+      subs: normalizeSubs(t.subs),
     }));
 }
 

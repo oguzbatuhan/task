@@ -10,7 +10,7 @@ import { useCloudSync } from "./hooks/useCloudSync.js";
 import { groupLabel, relativeName, shiftIso, shortDate, toIso } from "./lib/dates.js";
 import { groupByMonth } from "./lib/history.js";
 import { STORAGE_KEY, loadTasks, newTask } from "./lib/tasks.js";
-import { RULES_KEY, describeRule, loadRules, isBeyondWindow, materialize, newRule, nextOccurrence, syncInstances } from "./lib/repeat.js";
+import { RULES_KEY, cleanSubs, describeRule, loadRules, isBeyondWindow, materialize, newRule, nextOccurrence, syncInstances } from "./lib/repeat.js";
 import { RulesButton, RulesSheet } from "./components/RulesSheet.jsx";
 
 const HISTORY_PAGE_DAYS = 30;
@@ -148,9 +148,9 @@ export default function App() {
   const todayItems = byDate.get(today) || [];
   const todayDone = todayItems.filter((t) => t.done).length;
 
-  const add = (title, date, time = "", days = [], count = 0) => {
+  const add = (title, date, time = "", days = [], count = 0, subs = []) => {
     if (days.length > 0) {
-      const rule = newRule(title, days, date, time, count);
+      const rule = newRule(title, days, date, time, count, subs);
       setRules((prev) => [...prev, rule]);
       // the tasks themselves are created by the effect above (only for today and tomorrow)
       const first = nextOccurrence(rule, today);
@@ -180,6 +180,10 @@ export default function App() {
       prev.map((t) =>
         t.id === id ? { ...t, done: !t.done, updatedAt: Date.now() } : t,
       ),
+    );
+  const setSubs = (id, subs) =>
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, subs, updatedAt: Date.now() } : t)),
     );
   const setDeleted = (id, deleted) =>
     setTasks((prev) =>
@@ -263,12 +267,12 @@ export default function App() {
     if (liveRules.length === 0) setRulesOpen(false);
   }, [liveRules.length]);
 
-  const saveRule = (id, { title, time, days, count }) => {
+  const saveRule = (id, { title, time, days, count, subs }) => {
     const cur = rules.find((r) => r.id === id);
     if (!cur) return;
-    const next = { ...cur, title, time, days, count, updatedAt: Date.now() };
+    const next = { ...cur, title, time, days, count, subs: cleanSubs(subs), updatedAt: Date.now() };
     setRules((prev) => prev.map((r) => (r.id === id ? next : r)));
-    setTasks((prev) => syncInstances(prev, next, today));
+    setTasks((prev) => syncInstances(prev, next, today, cur));
     setEditingRuleId(null);
   };
   const removeRule = (id) => {
@@ -369,6 +373,7 @@ export default function App() {
                   onToggle={toggle}
                   onEdit={setEditingId}
                   onRemove={remove}
+                  onSubs={setSubs}
                 />
               )}
             />
@@ -390,6 +395,7 @@ export default function App() {
                     onToggle={toggle}
                     onEdit={setEditingId}
                     onRemove={remove}
+                    onSubs={setSubs}
                   />
                 ))}
               </ul>
@@ -467,6 +473,7 @@ export default function App() {
                   onToggle={toggle}
                   onEdit={setEditingId}
                   onRemove={remove}
+                  onSubs={setSubs}
                 />
               ))}
             </ul>
@@ -530,14 +537,14 @@ export default function App() {
                         {pending.length > 0 ? (
                           <ul>
                             {pending.map((t) => (
-                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} />
+                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} onSubs={setSubs} />
                             ))}
                           </ul>
                         ) : null}
                         {completed.length > 0 ? (
                           <ul>
                             {completed.map((t) => (
-                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} />
+                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} onSubs={setSubs} />
                             ))}
                           </ul>
                         ) : null}
