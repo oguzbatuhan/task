@@ -133,7 +133,13 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
             className={field + " h-auto w-full resize-none py-2.5 text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"}
           />
 
-          {isRule ? null : <SubtaskEditor subs={subs} onChange={setSubs} />}
+          {isRule ? (
+            <div className="rounded-xl border border-[var(--line-strong)] bg-[var(--bg)] px-3.5 py-2">
+              <SubDraft subs={subs} onChange={setSubs} />
+            </div>
+          ) : (
+            <SubtaskEditor subs={subs} onChange={setSubs} />
+          )}
 
           <div className={"grid gap-2.5 [&>*]:min-w-0 " + (isRule ? "grid-cols-1" : "grid-cols-2")}>
             {isRule ? null : (
@@ -206,9 +212,6 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
                   setCount(n);
                 }}
               />
-              <div className="mt-3 border-t border-[var(--line)] pt-2.5">
-                <SubDraft subs={subs} onChange={setSubs} />
-              </div>
               <p className="mt-2 text-xs text-[var(--muted)]">
                 Changes apply from today on, to unfinished occurrences. Past and completed tasks stay as they are.
               </p>
