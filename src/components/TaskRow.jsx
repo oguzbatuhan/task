@@ -1,71 +1,44 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { CheckIcon, ChevronIcon, ClockIcon, ListIcon, NoteIcon, RepeatIcon, TrashIcon } from "./Icons.jsx";
 import { shortDate } from "../lib/dates.js";
-import { uid } from "../lib/tasks.js";
+import { liveSubs } from "../lib/subs.js";
 
-// Subtasks: shown only when the task is tapped open. A plain checklist with one input line.
-function Subtasks({ subs, onChange }) {
-  const [text, setText] = useState("");
-  const add = (e) => {
-    e.preventDefault();
-    const title = text.trim();
-    if (!title) return;
-    onChange([...subs, { id: uid(), title, done: false }]);
-    setText("");
-  };
+// Subtasks: shown when the task is tapped open. Ticking is quick here; adding, renaming and removing happen in Edit.
+function Subtasks({ subs, onToggle }) {
   return (
-    <div className="pb-1.5 pl-9 pr-1">
-      {subs.length > 0 ? (
-        <ul>
-          {subs.map((s) => (
-            <li key={s.id} className="flex min-h-9 items-center gap-2.5">
-              <button
-                type="button"
-                role="checkbox"
-                aria-checked={s.done}
-                aria-label={(s.done ? "Mark as not completed: " : "Mark as completed: ") + s.title}
-                onClick={() => onChange(subs.map((x) => (x.id === s.id ? { ...x, done: !x.done } : x)))}
-                className={
-                  "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors " +
-                  (s.done
-                    ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
-                    : "border-[var(--line-strong)] text-transparent hover:border-[var(--accent)]")
-                }
-              >
-                <CheckIcon />
-              </button>
-              <span
-                className={
-                  "min-w-0 flex-1 break-words text-sm " +
-                  (s.done ? "text-[var(--muted)] line-through opacity-60" : "text-[var(--fg)]")
-                }
-              >
-                {s.title}
-              </span>
-              <button
-                type="button"
-                aria-label={"Remove subtask: " + s.title}
-                onClick={() => onChange(subs.filter((x) => x.id !== s.id))}
-                className="link-btn !px-1.5"
-              >
-                ×
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      <form onSubmit={add}>
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Add subtask"
-          aria-label="Add subtask"
-          maxLength={200}
-          enterKeyHint="done"
-          className="h-9 w-full bg-transparent text-sm text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"
-        />
-      </form>
-    </div>
+    <ul className="pb-1.5 pl-9 pr-1">
+      {subs.map((s) => (
+        <li key={s.id}>
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={s.done}
+            aria-label={(s.done ? "Mark as not completed: " : "Mark as completed: ") + s.title}
+            onClick={() => onToggle(s.id)}
+            className="flex min-h-9 w-full items-center gap-2.5 text-left"
+          >
+            <span
+              className={
+                "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors " +
+                (s.done
+                  ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
+                  : "border-[var(--line-strong)] text-transparent")
+              }
+            >
+              <CheckIcon />
+            </span>
+            <span
+              className={
+                "min-w-0 flex-1 break-words text-sm " +
+                (s.done ? "text-[var(--muted)] line-through opacity-60" : "text-[var(--fg)]")
+              }
+            >
+              {s.title}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -129,7 +102,7 @@ export function DoneHead({ count, open, onToggle }) {
 const CONFIRM_MS = 5000;
 
 // Tapping a task opens a framed info area (day, time, Edit, Delete). Edit opens the edit sheet.
-export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, onSubs, dateLabel }) {
+function TaskRowBase({ task, sortable, onToggle, onEdit, onOpen, onRemove, onToggleSub, dateLabel }) {
   // onOpen: old prop name, so an App.jsx that was not updated still opens the editor
   const edit = onEdit || onOpen;
   // A long press (drag to reorder) or a move (scroll) must not open the info area
@@ -207,7 +180,7 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, on
   };
 
   const checked = task.done || phase !== "idle";
-  const subs = task.subs || [];
+  const subs = useMemo(() => liveSubs(task.subs), [task.subs]);
   const subsDone = subs.filter((x) => x.done).length;
 
   const dragging = sortable && sortable.dragging;
@@ -332,9 +305,9 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, on
         <p className="task-in whitespace-pre-wrap break-words pb-2 pl-9 pr-1 text-sm text-[var(--muted)]">{task.note}</p>
       ) : null}
 
-      {isOpen && onSubs && mode !== "confirm" ? (
+      {isOpen && subs.length > 0 && onToggleSub && mode !== "confirm" ? (
         <div className="task-in">
-          <Subtasks subs={subs} onChange={(next) => onSubs(task.id, next)} />
+          <Subtasks subs={subs} onToggle={(subId) => onToggleSub(task.id, subId)} />
         </div>
       ) : null}
 
@@ -381,3 +354,6 @@ export function TaskRow({ task, sortable, onToggle, onEdit, onOpen, onRemove, on
     </li>
   );
 }
+
+// Rows re-render only when their own task (or the handlers, which App keeps stable) change
+export const TaskRow = memo(TaskRowBase);

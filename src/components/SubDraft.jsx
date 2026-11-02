@@ -1,18 +1,19 @@
 import { useState } from "react";
+import { MAX_SUBS } from "../lib/subs.js";
 
-// Editable list of subtask titles (used for recurring tasks: every occurrence gets these subtasks).
+// Editable list of subtask titles for the "new task" form and for recurring rules (every occurrence gets these subtasks).
 // Sits inside forms, so Enter adds a line instead of submitting.
-export default function SubDraft({ subs, onChange }) {
+export default function SubDraft({ subs, onChange, repeating = true }) {
   const [text, setText] = useState("");
   const add = () => {
     const title = text.trim();
-    if (!title || subs.length >= 20) return;
+    if (!title || subs.length >= MAX_SUBS) return;
     onChange([...subs, title]);
     setText("");
   };
   return (
     <div>
-      <p className="mb-1 text-xs text-[var(--muted)]">Subtasks (added to every occurrence)</p>
+      <p className="mb-1 text-xs text-[var(--muted)]">{repeating ? "Subtasks (added to every occurrence)" : "Subtasks"}</p>
       {subs.length > 0 ? (
         <ul>
           {subs.map((s, i) => (

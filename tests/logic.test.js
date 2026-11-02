@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { groupLabel, relativeName, shiftIso } from "../src/lib/dates.js";
-import { isValidTime, mergeTasks, newTask, normalizeTasks } from "../src/lib/tasks.js";
+import { isValidTime, mergeTasks, newTask, normalizeTasks, sameTasks } from "../src/lib/tasks.js";
+import { addSub, finalizeSubs, liveSubs, mergeSubs, removeSub, renameSub, subsFromTitles, toggleSub } from "../src/lib/subs.js";
 import { groupByMonth, monthKey, monthLabel } from "../src/lib/history.js";
 
 test("shiftIso moves across month and year boundaries", () => {
@@ -202,9 +203,13 @@ test("subtasks: old data gets none, bad entries dropped, survive merge", () => {
   const [t] = normalizeTasks([
     { id: "y", title: "t", date: "2026-10-19", subs: [{ id: "a", title: "one", done: 1 }, { id: "b", title: "  " }, null, { title: "no id" }] },
   ]);
-  assert.deepEqual(t.subs, [{ id: "a", title: "one", done: true }]);
-  const newer = { ...t, subs: [], updatedAt: 5 };
-  assert.deepEqual(mergeTasks([{ ...t, updatedAt: 1 }], [newer])[0].subs, []);
+  assert.deepEqual(t.subs, [{ id: "a", title: "one", done: true, updatedAt: 0, pos: 0, deleted: false }]);
+  // a removed subtask is kept as a tombstone, so the removal reaches the other device
+  const T = Date.now();
+  const removed = { ...t, subs: removeSub(t.subs, "a", T), updatedAt: T };
+  const merged = mergeTasks([{ ...t, updatedAt: 1 }], [removed])[0];
+  assert.deepEqual(liveSubs(merged.subs), []);
+  assert.equal(merged.subs.length, 1);
   assert.deepEqual(newTask("n", "2026-10-19").subs, []);
 });
 
@@ -227,7 +232,9 @@ test("recurring subtasks: copied to new occurrences, replaced only when the rule
   // changing the rule's subtasks replaces them but keeps ticks by title
   const changed = { ...rule, subs: ["Warm up", "Lift"] };
   const out = syncInstances(tasks, changed, today, rule)[0].subs;
-  assert.deepEqual(out.map((s) => [s.title, s.done]), [["Warm up", true], ["Lift", false]]);
+  assert.deepEqual(liveSubs(out).map((s) => [s.title, s.done]), [["Warm up", true], ["Lift", false]]);
+  // the dropped subtask is a tombstone, so other devices drop it too
+  assert.equal(out.filter((s) => s.deleted).length, 1);
 });
 
 test("notes: normalize, copy to occurrences, replaced only when the rule's note changes", async () => {
@@ -242,4 +249,76 @@ test("notes: normalize, copy to occurrences, replaced only when the rule's note 
   tasks = tasks.map((t, i) => (i === 0 ? { ...t, note: "custom" } : t));
   assert.equal(syncInstances(tasks, { ...rule, title: "Gym!" }, today, rule)[0].note, "custom");
   assert.equal(syncInstances(tasks, { ...rule, note: "new" }, today, rule)[0].note, "new");
+});
+
+test("sync: a subtask ticked on one device and the task renamed on another keep both changes", () => {
+  const T = Date.now();
+  const base = newTask("a", "2026-11-02", 1, "", { subs: ["x", "y"] });
+  const [x] = base.subs;
+  // device A ticks x; device B renames the task later (newer task-level change)
+  const a = { ...base, subs: toggleSub(base.subs, x.id, T + 20), updatedAt: T + 20 };
+  const b = { ...base, title: "renamed", updatedAt: T + 30 };
+  const merged = mergeTasks([a], [b])[0];
+  assert.equal(merged.title, "renamed");
+  assert.equal(merged.subs.find((s) => s.id === x.id).done, true);
+  // same result whichever side is "local"
+  assert.deepEqual(mergeTasks([b], [a]), mergeTasks([a], [b]));
+});
+
+test("sync: subtasks added on two devices are both kept, edits and removals merge per subtask", () => {
+  const T = Date.now();
+  const base = newTask("a", "2026-11-02", 1, "", { subs: ["x"] });
+  const a = { ...base, subs: addSub(base.subs, "from A", T + 20), updatedAt: T + 20 };
+  const b = { ...base, subs: addSub(base.subs, "from B", T + 21), updatedAt: T + 21 };
+  const merged = mergeTasks([a], [b])[0];
+  assert.deepEqual(liveSubs(merged.subs).map((s) => s.title).sort(), ["from A", "from B", "x"]);
+  const [x] = base.subs;
+  const renamed = renameSub(base.subs, x.id, "x2", T + 40);
+  const dropped = removeSub(base.subs, x.id, T + 30);
+  assert.equal(mergeSubs(renamed, dropped).find((s) => s.id === x.id).title, "x2"); // newer change wins
+  assert.equal(mergeSubs(renamed, dropped).find((s) => s.id === x.id).deleted, false);
+});
+
+test("sync: a freshly generated recurring task never overwrites edits made on another device", () => {
+  const rule = newRule("Gym", [1], "2026-11-02", "", 0, ["Warm up"], "towel");
+  const phone = materialize([], [rule], "2026-11-02"); // generated just now, before the first sync
+  assert.equal(phone[0].updatedAt, 0);
+  const laptop = materialize([], [rule], "2026-11-02").map((t) => ({
+    ...t,
+    note: "bring shoes too",
+    subs: toggleSub(t.subs, t.subs[0].id, 500),
+    updatedAt: 500,
+  }));
+  const merged = mergeTasks(phone, laptop);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].note, "bring shoes too");
+  assert.equal(merged[0].subs[0].done, true);
+  // and the other way round
+  assert.deepEqual(mergeTasks(laptop, phone), merged);
+});
+
+test("sync: both devices generate identical subtasks for the same day", () => {
+  const rule = newRule("Gym", [1], "2026-11-02", "", 0, ["Warm up", "Warm up", "Lift"]);
+  const a = materialize([], [rule], "2026-11-02")[0];
+  const b = materialize([], [rule], "2026-11-02")[0];
+  assert.equal(a.subs.length, 3);
+  assert.deepEqual(a.subs, b.subs);
+  assert.equal(new Set(a.subs.map((s) => s.id)).size, 3);
+  assert.equal(mergeTasks([a], [b])[0].subs.length, 3);
+  assert.deepEqual(subsFromTitles("t", ["one"]).map((s) => s.title), ["one"]);
+});
+
+test("subtasks: new task form values, trimming on save, notes and sameTasks", () => {
+  const t = newTask("a", "2026-11-02", 1, "", { subs: ["one", "  ", "two"], note: "  hello  " });
+  assert.deepEqual(liveSubs(t.subs).map((s) => s.title), ["one", "two"]);
+  assert.equal(t.note, "hello");
+  // typing a space inside a name is kept while editing; blank names become removals when saved
+  const typed = renameSub(t.subs, t.subs[0].id, "one ");
+  assert.equal(typed[0].title, "one ");
+  const blank = finalizeSubs(renameSub(t.subs, t.subs[0].id, "  "));
+  assert.deepEqual(liveSubs(blank).map((s) => s.title), ["two"]);
+  assert.equal(finalizeSubs(typed)[0].title, "one");
+  // key order or missing fields never make two equal task lists look different
+  assert.equal(sameTasks([t], JSON.parse(JSON.stringify([t]))), true);
+  assert.equal(sameTasks([t], [{ ...t, note: "changed" }]), false);
 });

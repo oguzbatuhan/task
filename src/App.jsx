@@ -10,10 +10,13 @@ import { useCloudSync } from "./hooks/useCloudSync.js";
 import { groupLabel, relativeName, shiftIso, shortDate, toIso } from "./lib/dates.js";
 import { groupByMonth } from "./lib/history.js";
 import { STORAGE_KEY, cleanNote, loadTasks, newTask } from "./lib/tasks.js";
+import { normalizeSubs, toggleSub } from "./lib/subs.js";
 import { RULES_KEY, cleanSubs, describeRule, loadRules, isBeyondWindow, materialize, newRule, nextOccurrence, syncInstances } from "./lib/repeat.js";
 import { RulesButton, RulesSheet } from "./components/RulesSheet.jsx";
 
 const HISTORY_PAGE_DAYS = 30;
+// One shared collator: much cheaper than localeCompare on every comparison
+const collator = new Intl.Collator("en");
 
 export default function App() {
   const [today, setToday] = useState(() => toIso(new Date()));
@@ -71,7 +74,7 @@ export default function App() {
     }
     for (const list of map.values()) {
       list.sort(
-        (a, b) => a.order - b.order || a.title.localeCompare(b.title, "en"),
+        (a, b) => a.order - b.order || collator.compare(a.title, b.title),
       );
     }
     return map;
@@ -148,9 +151,13 @@ export default function App() {
   const todayItems = byDate.get(today) || [];
   const todayDone = todayItems.filter((t) => t.done).length;
 
-  const add = (title, date, time = "", days = [], count = 0, subs = []) => {
+  // Short message at the bottom; deleting offers "Undo"
+  const [toast, setToast] = useState(null);
+  const closeToast = useCallback(() => setToast(null), []);
+
+  const add = (title, date, time = "", days = [], count = 0, subs = [], note = "") => {
     if (days.length > 0) {
-      const rule = newRule(title, days, date, time, count, subs);
+      const rule = newRule(title, days, date, time, count, subs, note);
       setRules((prev) => [...prev, rule]);
       // the tasks themselves are created by the effect above (only for today and tomorrow)
       const first = nextOccurrence(rule, today);
@@ -161,9 +168,9 @@ export default function App() {
       });
       return;
     }
-    addOne(title, date, time);
+    addOne(title, date, time, { subs, note });
   };
-  const addOne = (title, date, time = "") =>
+  const addOne = (title, date, time = "", extra = {}) =>
     setTasks((prev) => {
       // A new task is appended to the bottom of that day's list
       const last = Math.max(
@@ -172,33 +179,34 @@ export default function App() {
           .filter((t) => !t.deleted && t.date === date)
           .map((t) => t.order),
       );
-      return [...prev, newTask(title, date, last + 1, time)];
+      return [...prev, newTask(title, date, last + 1, time, extra)];
     });
 
-  const toggle = (id) =>
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id ? { ...t, done: !t.done, updatedAt: Date.now() } : t,
+  // Handlers are stable (functional updates only), so memoized task rows do not re-render needlessly
+  const toggle = useCallback(
+    (id) => setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done, updatedAt: Date.now() } : t))),
+    [],
+  );
+  // Ticking a subtask changes only that subtask (its own timestamp), so it merges cleanly with other devices
+  const toggleSubtask = useCallback(
+    (id, subId) =>
+      setTasks((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, subs: toggleSub(t.subs, subId), updatedAt: Date.now() } : t)),
       ),
-    );
-  const setSubs = (id, subs) =>
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, subs, updatedAt: Date.now() } : t)),
-    );
-  const setDeleted = (id, deleted) =>
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id ? { ...t, deleted, updatedAt: Date.now() } : t,
-      ),
-    );
-
-  // Short message at the bottom; deleting offers "Undo"
-  const [toast, setToast] = useState(null);
-  const closeToast = useCallback(() => setToast(null), []);
-  const remove = (id) => {
-    setDeleted(id, true);
-    setToast({ key: Date.now(), message: "Task deleted", undo: () => setDeleted(id, false) });
-  };
+    [],
+  );
+  const setDeleted = useCallback(
+    (id, deleted) =>
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, deleted, updatedAt: Date.now() } : t))),
+    [],
+  );
+  const remove = useCallback(
+    (id) => {
+      setDeleted(id, true);
+      setToast({ key: Date.now(), message: "Task deleted", undo: () => setDeleted(id, false) });
+    },
+    [setDeleted],
+  );
 
   // Unfinished tasks from earlier days: they used to hide in the history, now they stay in sight
   const overdue = useMemo(
@@ -209,7 +217,7 @@ export default function App() {
           (a, b) =>
             a.date.localeCompare(b.date) ||
             a.order - b.order ||
-            a.title.localeCompare(b.title, "en"),
+            collator.compare(a.title, b.title),
         ),
     [tasks, today],
   );
@@ -285,7 +293,7 @@ export default function App() {
     setToast({ key: Date.now(), message: "Recurring task deleted" });
   };
 
-  const save = (id, { title, date, time, note }) => {
+  const save = (id, { title, date, time, note, subs }) => {
     setTasks((prev) => {
       const cur = prev.find((t) => t.id === id);
       if (!cur) return prev;
@@ -302,7 +310,7 @@ export default function App() {
       }
       return prev.map((t) =>
         t.id === id
-          ? { ...t, title, date, time, note: cleanNote(note), order, updatedAt: Date.now() }
+          ? { ...t, title, date, time, note: cleanNote(note), subs: normalizeSubs(subs ?? t.subs), order, updatedAt: Date.now() }
           : t,
       );
     });
@@ -373,7 +381,7 @@ export default function App() {
                   onToggle={toggle}
                   onEdit={setEditingId}
                   onRemove={remove}
-                  onSubs={setSubs}
+                  onToggleSub={toggleSubtask}
                 />
               )}
             />
@@ -395,7 +403,7 @@ export default function App() {
                     onToggle={toggle}
                     onEdit={setEditingId}
                     onRemove={remove}
-                    onSubs={setSubs}
+                    onToggleSub={toggleSubtask}
                   />
                 ))}
               </ul>
@@ -473,7 +481,7 @@ export default function App() {
                   onToggle={toggle}
                   onEdit={setEditingId}
                   onRemove={remove}
-                  onSubs={setSubs}
+                  onToggleSub={toggleSubtask}
                 />
               ))}
             </ul>
@@ -537,14 +545,14 @@ export default function App() {
                         {pending.length > 0 ? (
                           <ul>
                             {pending.map((t) => (
-                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} onSubs={setSubs} />
+                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} onToggleSub={toggleSubtask} />
                             ))}
                           </ul>
                         ) : null}
                         {completed.length > 0 ? (
                           <ul>
                             {completed.map((t) => (
-                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} onSubs={setSubs} />
+                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} onToggleSub={toggleSubtask} />
                             ))}
                           </ul>
                         ) : null}

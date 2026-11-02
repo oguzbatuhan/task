@@ -9,6 +9,7 @@
 // or synced to know when the rule ends.
 import { fromIso, shiftIso } from "./dates.js";
 import { cleanNote, isValidTime, newTask, uid } from "./tasks.js";
+import { cleanTitles, subsFromTitles } from "./subs.js";
 
 export const RULES_KEY = "task-rules-v1";
 // How many days (today included) recurring tasks are created and shown for: today and tomorrow
@@ -66,19 +67,8 @@ export const isEnded = (rule, today) => {
 // "Mon, Wed" / "Mon, Wed · 10 times"
 export const describeRule = (rule) => describeDays(rule.days) + (rule.count ? " · " + rule.count + " times" : "");
 
-// Subtask titles of a rule: plain strings, trimmed, at most 20
-export const cleanSubs = (list) =>
-  Array.isArray(list)
-    ? list.filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim().slice(0, 200)).slice(0, 20)
-    : [];
-
-// The checklist a generated task starts with
-const subsFor = (rule, id, old = []) =>
-  (rule.subs || []).map((title, i) => ({
-    id: id + "#" + i,
-    title,
-    done: old.some((o) => o.title === title && o.done),
-  }));
+// Subtask titles of a rule: plain strings, trimmed, at most 30
+export const cleanSubs = cleanTitles;
 
 export function newRule(title, days, start, time = "", count = 0, subs = [], note = "") {
   return {
@@ -185,7 +175,16 @@ export function materialize(tasks, rules, today) {
       existing.add(id);
       const order = orderOf(date) + 1;
       lastOrder.set(date, order);
-      added.push({ ...newTask(r.title, date, order, r.time), id, ruleId: r.id, subs: subsFor(r, id), note: r.note || "" });
+      // updatedAt 0: a generated task is only a starting point. If another device already has this day with real
+      // edits (ticked subtasks, a changed note ...), those edits must win the merge, never this blank copy.
+      added.push({
+        ...newTask(r.title, date, order, r.time),
+        id,
+        ruleId: r.id,
+        subs: subsFromTitles(id, r.subs),
+        note: r.note || "",
+        updatedAt: 0,
+      });
     }
   }
   return added.length ? [...tasks, ...added] : tasks;
@@ -209,7 +208,7 @@ export function syncInstances(tasks, rule, today, prev = null) {
       !rule.days.includes(weekdayOf(origin)) ||
       (rule.count > 0 && occurrencesUntil(rule, origin) > rule.count);
     if (gone) return { ...t, deleted: true, updatedAt: now };
-    const subs = subsChanged ? subsFor(rule, t.id, t.subs || []) : t.subs;
+    const subs = subsChanged ? subsFromTitles(t.id, rule.subs, t.subs || [], now) : t.subs;
     const note = noteChanged ? rule.note || "" : t.note;
     if (t.title === rule.title && t.time === rule.time && !subsChanged && !noteChanged) return t;
     return { ...t, title: rule.title, time: rule.time, subs, note, updatedAt: now };

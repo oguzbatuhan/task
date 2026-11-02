@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AuthError,
+  ConflictError,
   cloudConfigured,
   downloadData,
   onAuthChange,
@@ -11,6 +12,9 @@ import {
 } from "../lib/supabase.js";
 import { mergeTasks, normalizeTasks, sameTasks, sortById } from "../lib/tasks.js";
 import { mergeRules, normalizeRules } from "../lib/repeat.js";
+
+const sameRules = (a, b) => JSON.stringify(normalizeRules(a)) === JSON.stringify(normalizeRules(b));
+const MAX_CONFLICT_RETRIES = 3;
 
 const FLAG_KEY = "task-cloud-connected";
 const DEBOUNCE_MS = 1200;
@@ -62,22 +66,30 @@ export function useCloudSync(tasks, setTasks, rules, setRules) {
     try {
       const user = await requireUser();
       setEmail(user.email || "");
-      const remote = await downloadData();
-      const remoteTasks = normalizeTasks(remote?.tasks);
-      const local = tasksRef.current;
-      const merged = mergeTasks(local, remoteTasks);
-      // Recurring rules travel in the same backup (older backups have none)
-      const remoteRules = normalizeRules(remote?.rules);
-      const localRules = rulesRef.current;
-      const mergedRules = mergeRules(localRules, remoteRules);
+      // Download, merge, upload. If another device saved in between, the upload is refused (ConflictError):
+      // start over with the newer copy, so nothing either device changed is lost.
+      for (let attempt = 0; ; attempt++) {
+        const { data: remote, version } = await downloadData();
+        const remoteTasks = normalizeTasks(remote?.tasks);
+        const remoteRules = normalizeRules(remote?.rules); // older backups have no rules
+        const local = tasksRef.current;
+        const localRules = rulesRef.current;
+        const merged = mergeTasks(local, remoteTasks);
+        const mergedRules = mergeRules(localRules, remoteRules);
 
-      const tasksChanged = !sameTasks(sortById(local), merged);
-      const rulesChanged = !sameTasks(mergeRules(localRules, []), mergedRules);
-      if (tasksChanged || rulesChanged) skipNext.current = true;
-      if (tasksChanged) setTasks(merged);
-      if (rulesChanged) setRules(mergedRules);
-      if (!remote || !sameTasks(sortById(remoteTasks), merged) || !sameTasks(mergeRules(remoteRules, []), mergedRules)) {
-        await uploadData({ version: 2, tasks: merged, rules: mergedRules });
+        const tasksChanged = !sameTasks(sortById(local), merged);
+        const rulesChanged = !sameRules(mergeRules(localRules, []), mergedRules);
+        if (tasksChanged || rulesChanged) skipNext.current = true;
+        if (tasksChanged) setTasks(merged);
+        if (rulesChanged) setRules(mergedRules);
+        // Nothing to upload when the backup already holds exactly the merged data
+        if (remote && sameTasks(remoteTasks, merged) && sameRules(remoteRules, mergedRules)) break;
+        try {
+          await uploadData({ version: 3, tasks: merged, rules: mergedRules }, version);
+          break;
+        } catch (e) {
+          if (!(e instanceof ConflictError) || attempt >= MAX_CONFLICT_RETRIES) throw e;
+        }
       }
       setStatus("synced");
       setLastSynced(Date.now());
@@ -121,13 +133,13 @@ export function useCloudSync(tasks, setTasks, rules, setRules) {
 
   // If the session is lost (signed out elsewhere, refresh token revoked) ask to reconnect
   useEffect(() => {
-    if (!cloudConfigured) return;
+    if (!cloudConfigured || !connected) return;
     return onAuthChange((event) => {
       if (event === "SIGNED_OUT" && connectedRef.current) {
         setStatus("needs-auth");
       }
     });
-  }, []);
+  }, [connected]);
 
   // Pull changes from other devices when returning to the tab
   useEffect(() => {

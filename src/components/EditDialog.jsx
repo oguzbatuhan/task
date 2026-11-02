@@ -2,19 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import { CalendarIcon, ClockIcon, CloseIcon, RepeatIcon } from "./Icons.jsx";
 import DayPicker from "./DayPicker.jsx";
 import SubDraft from "./SubDraft.jsx";
+import SubtaskEditor from "./SubtaskEditor.jsx";
+import { finalizeSubs } from "../lib/subs.js";
 import { shortDate } from "../lib/dates.js";
 
 const field =
   "relative flex h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--line-strong)] bg-[var(--bg)] px-3.5 text-base transition-colors focus-within:border-[var(--accent)] sm:text-[0.9375rem]";
 
-// Bottom sheet on phones, centered card on larger screens: edit title, day and time, or delete.
+// Bottom sheet on phones, centered card on larger screens: edit title, note, subtasks, day and time, or delete.
 // mode "rule": edits a recurring rule instead (title, time and weekdays; no single date).
 // ruleInfo / onEditRule: shown for a task made by a rule, with a button that opens that rule.
 export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditRule, onSave, onDelete, onClose }) {
   const isRule = mode === "rule";
   const [days, setDays] = useState(task.days || []);
   const [count, setCount] = useState(task.count || 0);
-  const [subs, setSubs] = useState(task.subs || []); // rule mode only
+  // Rule mode: plain titles every occurrence starts with. Task mode: the task's own checklist (full objects).
+  const [subs, setSubs] = useState(task.subs || []);
   const hasRepeat = days.length > 0;
   const [title, setTitle] = useState(task.title);
   const [date, setDate] = useState(task.date);
@@ -76,7 +79,7 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
       if (!hasRepeat) return;
       return onSave(task.id, { title: text, time, days, count, subs, note });
     }
-    onSave(task.id, { title: text, date, time, note });
+    onSave(task.id, { title: text, date, time, note, subs: finalizeSubs(subs) });
   }
 
   return (
@@ -125,10 +128,12 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
             onChange={(e) => setNote(e.target.value)}
             maxLength={1000}
             rows={3}
-            aria-label="Note"
-            placeholder="Note (optional)"
+            aria-label="Description"
+            placeholder="Description (optional)"
             className={field + " h-auto w-full resize-none py-2.5 text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"}
           />
+
+          {isRule ? null : <SubtaskEditor subs={subs} onChange={setSubs} />}
 
           <div className={"grid gap-2.5 [&>*]:min-w-0 " + (isRule ? "grid-cols-1" : "grid-cols-2")}>
             {isRule ? null : (

@@ -1,8 +1,6 @@
 // Supabase backup: sign in with Google; data is written to ONE shared table in Supabase
 // (default: app_backups). Each app uses its own row: (user_id, app) = ("task").
 // So Daily / Flow / Tasks data never get mixed up even though they share the same table.
-import { createClient } from "@supabase/supabase-js";
-
 const URL = import.meta.env.VITE_SUPABASE_URL;
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const TABLE = import.meta.env.VITE_SUPABASE_TABLE || "app_backups";
@@ -19,9 +17,21 @@ export class AuthError extends Error {
   }
 }
 
+export class ConflictError extends Error {
+  constructor() {
+    super("The backup changed on another device");
+    this.code = "conflict";
+  }
+}
+
+// The Supabase library is large, so it is only loaded when cloud backup is actually in use (connected, or coming back
+// from the Google sign-in page). Without a connection the app never downloads it.
 // The three apps run on the same domain (github.io), so the session key is specific to each app.
-const supabase = cloudConfigured
-  ? createClient(URL, KEY, {
+let clientPromise = null;
+function getClient() {
+  if (!cloudConfigured) return Promise.resolve(null);
+  clientPromise ??= import("@supabase/supabase-js").then(({ createClient }) =>
+    createClient(URL, KEY, {
       auth: {
         flowType: "pkce",
         persistSession: true,
@@ -30,10 +40,13 @@ const supabase = cloudConfigured
         storageKey: APP_ID + "-supabase-auth",
       },
     })
-  : null;
+  );
+  return clientPromise;
+}
 
 // Redirects to Google; after sign-in the page returns to this address (it must be in Supabase > Redirect URLs).
 export async function signIn() {
+  const supabase = await getClient();
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
@@ -46,20 +59,30 @@ export async function signIn() {
 
 // scope "local": signs out of this app only, the other apps are not affected.
 export async function signOut() {
-  if (!supabase) return;
+  if (!cloudConfigured) return;
   try {
+    const supabase = await getClient();
     await supabase.auth.signOut({ scope: "local" });
   } catch {}
 }
 
 export function onAuthChange(callback) {
-  if (!supabase) return () => {};
-  const { data } = supabase.auth.onAuthStateChange(callback);
-  return () => data.subscription.unsubscribe();
+  let stop = () => {};
+  let closed = false;
+  getClient().then((supabase) => {
+    if (!supabase || closed) return;
+    const { data } = supabase.auth.onAuthStateChange(callback);
+    stop = () => data.subscription.unsubscribe();
+  });
+  return () => {
+    closed = true;
+    stop();
+  };
 }
 
 // Returns the current user; throws AuthError when there is no session.
 export async function requireUser() {
+  const supabase = await getClient();
   const { data, error } = await supabase.auth.getSession();
   if (error) {
     // A network error does not clear the session; only count this attempt as failed
@@ -85,25 +108,43 @@ function toError(error) {
   return new Error(error.message || "Supabase request failed");
 }
 
-// Downloads this app's data. Returns null when there is no row.
+// Downloads this app's data. Returns { data, version } where version identifies this exact copy of the row
+// (null when there is no row yet); pass it back to uploadData so a newer copy is never overwritten by mistake.
 export async function downloadData() {
   const user = await requireUser();
+  const supabase = await getClient();
   const { data, error } = await supabase
     .from(TABLE)
-    .select("data")
+    .select("data, updated_at")
     .eq("user_id", user.id)
     .eq("app", APP_ID)
     .maybeSingle();
   if (error) throw toError(error);
-  return data?.data ?? null;
+  return { data: data?.data ?? null, version: data?.updated_at ?? null };
 }
 
 // Writes only the (user_id, app) row; never touches another app's row.
-export async function uploadData(payload) {
+// `version` is what downloadData returned. If another device saved in between, nothing is written and a ConflictError
+// is thrown, so the caller downloads again, merges and retries (no device can silently overwrite another's changes).
+export async function uploadData(payload, version) {
   const user = await requireUser();
-  const { error } = await supabase.from(TABLE).upsert(
-    { user_id: user.id, app: APP_ID, data: payload, updated_at: new Date().toISOString() },
-    { onConflict: "user_id,app" }
-  );
-  if (error) throw toError(error);
+  const supabase = await getClient();
+  const updated_at = new Date().toISOString();
+  if (version) {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .update({ data: payload, updated_at })
+      .eq("user_id", user.id)
+      .eq("app", APP_ID)
+      .eq("updated_at", version)
+      .select("updated_at");
+    if (error) throw toError(error);
+    if (!data || data.length === 0) throw new ConflictError();
+    return;
+  }
+  const { error } = await supabase.from(TABLE).insert({ user_id: user.id, app: APP_ID, data: payload, updated_at });
+  if (error) {
+    if (error.code === "23505") throw new ConflictError(); // another device created the row first
+    throw toError(error);
+  }
 }

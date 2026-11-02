@@ -1,33 +1,38 @@
+import { uid } from "./id.js";
+import { mergeSubs, newSubs, normalizeSubs } from "./subs.js";
+
+export { normalizeSubs };
 export const STORAGE_KEY = "task-tasks-v1";
 
 // Deleted tasks are not removed right away; they are kept for a while with a "deleted" flag
 // so the deletion reaches other devices too. Flags older than 30 days are purged.
 const TOMBSTONE_MS = 30 * 24 * 60 * 60 * 1000;
 
-export function uid() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-}
+export { uid };
 
 // order: manual position among tasks on the same date (smaller comes first)
 // time: optional "HH:MM" (24h) or "" when the task has no set time
 export const isValidTime = (v) => typeof v === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
 
-// subs: simple checklist inside a task, [{ id, title, done }]. They live inside the task, so they
-// sync, merge and get deleted together with it (no separate records to keep in step).
-export function normalizeSubs(list) {
-  if (!Array.isArray(list)) return [];
-  return list
-    .filter((s) => s && typeof s.id === "string" && typeof s.title === "string" && s.title.trim())
-    .map((s) => ({ id: s.id, title: s.title, done: Boolean(s.done) }));
-}
-
 // note: optional free-text description ("" when none)
 export const cleanNote = (v) => (typeof v === "string" ? v.trim().slice(0, 1000) : "");
 
 // ruleId: set on tasks that a recurring rule created ("" for ordinary tasks)
-export function newTask(title, date, order = 0, time = "") {
-  return { id: uid(), title, date, time: isValidTime(time) ? time : "", done: false, deleted: false, updatedAt: Date.now(), order, ruleId: "", subs: [], note: "" };
+// extra: { subs: [titles], note } typed in the "new task" form
+export function newTask(title, date, order = 0, time = "", extra = {}) {
+  return {
+    id: uid(),
+    title,
+    date,
+    time: isValidTime(time) ? time : "",
+    done: false,
+    deleted: false,
+    updatedAt: Date.now(),
+    order,
+    ruleId: "",
+    subs: newSubs(extra.subs),
+    note: cleanNote(extra.note),
+  };
 }
 
 export function normalizeTasks(list) {
@@ -60,14 +65,25 @@ export function loadTasks() {
 
 export const sortById = (list) => [...list].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
-export const sameTasks = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+// Compares two task lists by content (both sides are normalized first, so key order and missing fields never matter)
+export const sameTasks = (a, b) => JSON.stringify(normalizeTasks(a)) === JSON.stringify(normalizeTasks(b));
 
-// If the same task changed in two places, the latest change (larger updatedAt) wins.
+// If the same task changed in two places, the latest change (larger updatedAt) wins for its own fields (title, day,
+// time, note, done ...). Subtasks are merged one by one, so ticking a subtask on one device and renaming the task
+// on another keeps both changes. On an exact tie the same side wins on every device.
 export function mergeTasks(local, remote) {
   const byId = new Map();
   for (const t of [...normalizeTasks(local), ...normalizeTasks(remote)]) {
-    const current = byId.get(t.id);
-    if (!current || t.updatedAt > current.updatedAt) byId.set(t.id, t);
+    const cur = byId.get(t.id);
+    if (!cur) {
+      byId.set(t.id, t);
+      continue;
+    }
+    const win =
+      cur.updatedAt !== t.updatedAt
+        ? cur.updatedAt > t.updatedAt ? cur : t
+        : JSON.stringify(cur) >= JSON.stringify(t) ? cur : t;
+    byId.set(t.id, { ...win, subs: mergeSubs(cur.subs, t.subs) });
   }
   const cutoff = Date.now() - TOMBSTONE_MS;
   const kept = [...byId.values()].filter((t) => !(t.deleted && t.updatedAt < cutoff));

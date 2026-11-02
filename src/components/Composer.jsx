@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarIcon, ClockIcon, CloseIcon, PlusIcon, RepeatIcon } from "./Icons.jsx";
+import { CalendarIcon, ClockIcon, CloseIcon, NoteIcon, PlusIcon, RepeatIcon } from "./Icons.jsx";
 import DayPicker from "./DayPicker.jsx";
 import SubDraft from "./SubDraft.jsx";
 import { describeDays } from "../lib/repeat.js";
@@ -135,12 +135,14 @@ export default function Composer({ today, onAdd }) {
   const [repeatOpen, setRepeatOpen] = useState(false);
   const [days, setDays] = useState([]);
   const [count, setCount] = useState(0); // 0 = repeats forever, otherwise ends after this many times
-  const [subs, setSubs] = useState([]); // subtasks every occurrence of a repeating task starts with
+  // Details: a description and subtasks (for a repeating task, every occurrence starts with them)
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [note, setNote] = useState("");
+  const [subs, setSubs] = useState([]);
   const repeating = days.length > 0;
   const setRepeat = (d, n) => {
     setDays(d);
     setCount(n);
-    if (d.length === 0) setSubs([]);
   };
   const [timeOpen, setTimeOpen] = useState(false);
   const inputRef = useRef(null);
@@ -159,9 +161,12 @@ export default function Composer({ today, onAdd }) {
       return;
     }
     const q = parseQuick(text, today, tomorrow);
-    onAdd(q.title, q.date || date, q.time || time, days, count, subs);
+    onAdd(q.title, q.date || date, q.time || time, days, count, subs, note);
     setTitle("");
     setTime("");
+    setNote("");
+    setSubs([]);
+    setDetailsOpen(false);
     setRepeat([], 0);
     setRepeatOpen(false);
     setDate(today);
@@ -172,11 +177,15 @@ export default function Composer({ today, onAdd }) {
   function clearExtras() {
     setDate(today);
     setTime("");
+    setNote("");
+    setSubs([]);
+    setDetailsOpen(false);
     setRepeat([], 0);
     setRepeatOpen(false);
   }
 
-  const hasExtras = date !== today || !!time || repeating;
+  const hasDetails = !!note.trim() || subs.length > 0;
+  const hasExtras = date !== today || !!time || repeating || hasDetails;
 
   return (
     <form onSubmit={submit} className="mb-5">
@@ -270,6 +279,17 @@ export default function Composer({ today, onAdd }) {
             {days.length ? describeDays(days) + (count ? " ×" + count : "") : "Repeat"}
           </span>
         </button>
+        <button
+          type="button"
+          aria-expanded={detailsOpen}
+          onClick={() => setDetailsOpen((o) => !o)}
+          className={"shrink-0 " + chip + (hasDetails || detailsOpen ? chipOn : chipOff)}
+        >
+          <NoteIcon />
+          <span className="tabular whitespace-nowrap">
+            {hasDetails ? "Details · " + ((note.trim() ? 1 : 0) + subs.length) : "Details"}
+          </span>
+        </button>
         {hasExtras ? (
           <button
             type="button"
@@ -285,16 +305,28 @@ export default function Composer({ today, onAdd }) {
         <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3.5 shadow-[var(--shadow)]">
           <DayPicker days={days} count={count} onChange={setRepeat} />
           {repeating ? (
-            <div className="mt-3 border-t border-[var(--line)] pt-2.5">
-              <SubDraft subs={subs} onChange={setSubs} />
-            </div>
-          ) : null}
-          {repeating ? (
             <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">
               {(date > tomorrow ? "Starts on " + shortDate(date) + ". " : "") +
                 "Only shown for today and tomorrow; later days are added when they come up."}
             </p>
           ) : null}
+        </div>
+      ) : null}
+
+      {detailsOpen ? (
+        <div className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3.5 shadow-[var(--shadow)]">
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={1000}
+            rows={2}
+            aria-label="Description"
+            placeholder="Description (optional)"
+            className="w-full resize-none rounded-xl border border-[var(--line-strong)] bg-[var(--bg)] px-3.5 py-2.5 text-base text-[var(--fg)] outline-none transition-colors placeholder:text-[var(--muted)] focus:border-[var(--accent)] sm:text-[0.9375rem]"
+          />
+          <div className="mt-2.5">
+            <SubDraft subs={subs} onChange={setSubs} repeating={repeating} />
+          </div>
         </div>
       ) : null}
 
