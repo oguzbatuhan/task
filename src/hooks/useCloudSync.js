@@ -19,6 +19,7 @@ const MAX_CONFLICT_RETRIES = 3;
 const FLAG_KEY = "task-cloud-connected";
 const DEBOUNCE_MS = 1200;
 const FOCUS_SYNC_MS = 15000;
+const POLL_MS = 30000; // while the page is visible, check for changes from other devices
 
 const readFlag = () => {
   try {
@@ -141,10 +142,13 @@ export function useCloudSync(tasks, setTasks, rules, setRules) {
     });
   }, [connected]);
 
-  // Pull changes from other devices when returning to the tab
+  // Pull changes from other devices when returning to the tab / app, and every POLL_MS while it stays visible
+  // (a tab left open on a desktop never fires "visibilitychange", so it would never see a star set on the phone).
+  // Push right away when the page is hidden or frozen: phones suspend the debounce timer, so a change made just
+  // before locking the screen would otherwise wait until the app is opened again.
   useEffect(() => {
     if (!cloudConfigured) return;
-    const onVisible = () => {
+    const pullIfStale = () => {
       if (
         document.visibilityState === "visible" &&
         connectedRef.current &&
@@ -153,14 +157,29 @@ export function useCloudSync(tasks, setTasks, rules, setRules) {
         run();
       }
     };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") pullIfStale();
+      else if (connectedRef.current) run(); // push pending changes before the page is suspended
+    };
+    const onPageHide = () => {
+      if (connectedRef.current) run();
+    };
     // Push pending changes when the connection returns
     const onOnline = () => {
       if (connectedRef.current) run();
     };
-    document.addEventListener("visibilitychange", onVisible);
+    const poll = setInterval(pullIfStale, POLL_MS);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", pullIfStale);
+    window.addEventListener("pageshow", pullIfStale);
+    window.addEventListener("pagehide", onPageHide);
     window.addEventListener("online", onOnline);
     return () => {
-      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", pullIfStale);
+      window.removeEventListener("pageshow", pullIfStale);
+      window.removeEventListener("pagehide", onPageHide);
       window.removeEventListener("online", onOnline);
     };
   }, [run]);

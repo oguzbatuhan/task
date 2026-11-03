@@ -373,7 +373,7 @@ function TaskRowBase({
             }}
             className={
               "flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--hover)] " +
-              (task.starred ? "text-white" : "text-[var(--fg)]")
+              (task.starred ? "text-[var(--star)]" : "text-[var(--muted)] hover:text-[var(--fg)]")
             }
           >
             <StarIcon filled={Boolean(task.starred)} />

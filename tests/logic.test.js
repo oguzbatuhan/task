@@ -382,3 +382,18 @@ test("repeat: occurrence counting by arithmetic matches day-by-day counting", ()
     }
   }
 });
+
+test("star: set on one device while another renames; both survive, and the star survives a round trip", () => {
+  const base = newTask("a", "2026-11-03", 1);
+  const phone = patchTask(base, { starred: true }, base.updatedAt + 1000);
+  const pc = patchTask(base, { title: "b" }, base.updatedAt + 2000);
+  const m1 = mergeTasks([phone], [pc])[0];
+  const m2 = mergeTasks([pc], [phone])[0];
+  assert.equal(m1.starred, true);
+  assert.equal(m1.title, "b");
+  assert.deepEqual(m1, m2);
+  // unstar later on the other device wins
+  const unstar = patchTask(m1, { starred: false }, base.updatedAt + 3000);
+  assert.equal(mergeTasks([m1], [unstar])[0].starred, false);
+  assert.equal(normalizeTasks(JSON.parse(JSON.stringify([m1])))[0].starred, true);
+});
