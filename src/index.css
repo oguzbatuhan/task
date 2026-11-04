@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* The font ships with the app (Geist, Latin and Latin-ext only: includes accented letters) */
+/* Geist Variable – Latin + Latin-ext */
 @font-face {
   font-family: "Geist Variable";
   font-style: normal;
@@ -29,21 +29,53 @@
     U+2215, U+FEFF, U+FFFD;
 }
 
-/* Forced dark theme — black & gray only (no blue/teal) */
+/* ─────────────────────────────────────────────
+   Design tokens — modern, calm, high-contrast
+   ───────────────────────────────────────────── */
 :root {
-  --bg: #0a0a0a;
-  --surface: #171717;
-  --fg: #f0f0f0;
-  --muted: #9a9a9a;
-  --line: #2c2c2c;
-  --line-strong: #3a3a3a;
-  --accent: #f0f0f0;
-  --accent-fg: #0a0a0a;
-  --accent-soft: #242424;
-  --warn: #b87f72;
-  --star: #c2a468; /* starred task: a muted amber instead of bright white */
-  --hover: rgba(255, 255, 255, 0.07);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  /* Surfaces */
+  --bg: #09090b;
+  --surface: #121214;
+  --surface-2: #1a1a1e;
+  --surface-elevated: #1e1e22;
+
+  /* Text */
+  --fg: #fafafa;
+  --muted: #a1a1aa;
+  --muted-2: #71717a;
+
+  /* Borders */
+  --line: #27272a;
+  --line-strong: #3f3f46;
+
+  /* Accent — soft indigo */
+  --accent: #818cf8;
+  --accent-fg: #0a0a0c;
+  --accent-soft: rgba(129, 140, 248, 0.12);
+  --accent-hover: #a5b4fc;
+
+  /* Semantic */
+  --warn: #f87171;
+  --warn-soft: rgba(248, 113, 113, 0.12);
+  --star: #fbbf24;
+  --success: #34d399;
+
+  /* Interactive */
+  --hover: rgba(255, 255, 255, 0.05);
+  --hover-strong: rgba(255, 255, 255, 0.08);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
   --font: "Geist Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
   color-scheme: dark;
 }
@@ -60,20 +92,326 @@
     font-size: 15px;
     line-height: 1.5;
     min-height: 100dvh;
-    padding-top: max(24px, calc(env(safe-area-inset-top, 0px) + 12px));
+    padding-top: max(20px, calc(env(safe-area-inset-top, 0px) + 10px));
     padding-bottom: 0;
-    padding-left: max(20px, env(safe-area-inset-left, 0px));
-    padding-right: max(20px, env(safe-area-inset-right, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--fg);
+  }
 }
 
 @layer components {
-  /* Completed check icon: faded, with a line through it */
+  /* ── Typography helpers ── */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    height: 2.5rem;
+    min-width: 6rem;
+    padding: 0 1.125rem;
+    border-radius: var(--radius-full);
+    border: 1px solid transparent;
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease,
+      opacity 0.15s ease,
+      transform 0.1s ease;
+  }
+  .btn:active {
+    transform: scale(0.97);
+  }
+  .btn-solid {
+    background: var(--accent);
+    color: var(--accent-fg);
+  }
+  .btn-solid:hover {
+    background: var(--accent-hover);
+  }
+  .btn-ghost {
+    border-color: var(--line-strong);
+    color: var(--fg);
+    background: transparent;
+  }
+  .btn-ghost:hover {
+    background: var(--hover);
+    border-color: var(--muted-2);
+  }
+  .btn-warn {
+    background: var(--warn);
+    color: #0a0a0c;
+  }
+  .btn-warn:hover {
+    opacity: 0.9;
+  }
+  .btn-lg {
+    height: 3rem;
+    min-width: 8rem;
+    padding: 0 1.5rem;
+    font-size: 0.9375rem;
+  }
+  .btn-sm {
+    height: 2rem;
+    min-width: 0;
+    padding: 0 0.875rem;
+    font-size: 0.8125rem;
+  }
+  .btn-icon {
+    width: 2.5rem;
+    min-width: 2.5rem;
+    padding: 0;
+  }
+
+  /* Icon-only buttons */
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius);
+    color: var(--muted);
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .icon-btn:hover {
+    background: var(--hover);
+    color: var(--fg);
+  }
+
+  /* Link-style buttons */
+  .link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--muted);
+    transition: color 0.15s;
+  }
+  .link-btn:hover {
+    color: var(--fg);
+  }
+
+  /* ── Inputs ── */
+  .field {
+    width: 100%;
+    height: 2.75rem;
+    padding: 0 0.875rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--fg);
+    font-size: 0.9375rem;
+    transition: border-color 0.15s, background-color 0.15s;
+  }
+  .field:hover {
+    border-color: var(--line-strong);
+  }
+  .field:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--surface-2);
+  }
+  .field::placeholder {
+    color: var(--muted-2);
+  }
+
+  textarea.field {
+    height: auto;
+    min-height: 5rem;
+    padding: 0.75rem 0.875rem;
+    resize: vertical;
+  }
+
+  /* ── Cards / day sections ── */
+  .day-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 1rem 0.875rem 0.75rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .day-card-warn {
+    border-color: rgba(248, 113, 113, 0.25);
+    background: linear-gradient(180deg, var(--warn-soft) 0%, var(--surface) 40%);
+  }
+
+  /* ── Progress bar ── */
+  .progress {
+    height: 4px;
+    border-radius: var(--radius-full);
+    background: var(--line);
+    overflow: hidden;
+  }
+  .progress > span {
+    display: block;
+    height: 100%;
+    border-radius: var(--radius-full);
+    background: linear-gradient(90deg, var(--accent), #a78bfa);
+    transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* ── Task row ── */
+  .task-row {
+    border-radius: var(--radius);
+    transition: background-color 0.15s;
+  }
+  .task-row:hover {
+    background: var(--hover);
+  }
+  .task-row.done {
+    opacity: 0.55;
+  }
+  .task-row.done .task-title {
+    text-decoration: line-through;
+    text-decoration-thickness: 1.5px;
+    color: var(--muted);
+  }
+
+  /* Checkbox */
+  .check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.375rem;
+    height: 1.375rem;
+    border-radius: 50%;
+    border: 1.5px solid var(--line-strong);
+    background: transparent;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s,
+      transform 0.15s;
+    flex-shrink: 0;
+  }
+  .check:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .check.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-fg);
+  }
+
+  /* Star */
+  .star-btn {
+    color: var(--muted-2);
+    transition: color 0.15s, transform 0.15s;
+  }
+  .star-btn:hover {
+    color: var(--star);
+  }
+  .star-btn.active {
+    color: var(--star);
+  }
+
+  /* ── Composer (quick-add) ── */
+  .composer {
+    position: sticky;
+    bottom: 0;
+    z-index: 40;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(
+      to top,
+      var(--bg) 60%,
+      transparent
+    );
+  }
+  .composer-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--surface-elevated);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    padding: 0.375rem 0.375rem 0.375rem 1rem;
+    box-shadow: var(--shadow);
+  }
+  .composer-input {
+    flex: 1;
+    min-width: 0;
+    height: 2.5rem;
+    background: transparent;
+    border: none;
+    color: var(--fg);
+    font-size: 0.9375rem;
+  }
+  .composer-input:focus {
+    outline: none;
+  }
+  .composer-input::placeholder {
+    color: var(--muted-2);
+  }
+
+  /* ── Sheets / dialogs ── */
+  .sheet {
+    background: var(--surface-elevated);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: var(--shadow-lg);
+  }
+  @media (min-width: 640px) {
+    .sheet {
+      border-radius: var(--radius-xl);
+    }
+  }
+
+  /* ── Toast ── */
+  .toast {
+    background: var(--surface-elevated);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 0.75rem 1rem;
+  }
+
+  /* ── Sync bar ── */
+  .sync-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 1.75rem;
+    padding: 0 0.625rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .sync-pill.connected {
+    color: var(--success);
+    border-color: rgba(52, 211, 153, 0.25);
+    background: rgba(52, 211, 153, 0.08);
+  }
+
+  /* ── History panel ── */
+  .history-panel {
+    background: var(--surface-elevated);
+    border-left: 1px solid var(--line);
+  }
+
+  /* ── Done icon (strikethrough overlay) ── */
   .done-icon {
     position: relative;
     opacity: 0.45;
@@ -90,152 +428,27 @@
     transform: translateY(-50%);
   }
 
-  .tabular {
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Buttons: small, soft, pill-shaped */
-  .btn {
-    display: inline-flex;
+  /* ── Empty state ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 2.5rem;
-    min-width: 6.5rem;
-    padding: 0 1.25rem;
-    border-radius: 9999px;
-    border: 1px solid transparent;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: var(--muted);
+  }
+  .empty-state p {
+    margin-top: 0.5rem;
     font-size: 0.875rem;
-    font-weight: 500;
-    letter-spacing: 0.005em;
-    white-space: nowrap;
-    transition:
-      background-color 0.15s,
-      border-color 0.15s,
-      color 0.15s,
-      opacity 0.15s;
-  }
-  .btn-solid {
-    background: var(--accent);
-    color: var(--accent-fg);
-  }
-  .btn-solid:hover {
-    opacity: 0.9;
-  }
-  .btn-ghost {
-    border-color: var(--line-strong);
-    color: var(--fg);
-  }
-  .btn-ghost:hover {
-    background: var(--hover);
-  }
-  .btn-warn {
-    background: var(--warn);
-    color: var(--bg);
-  }
-  .btn-warn:hover {
-    opacity: 0.9;
-  }
-  .btn-lg {
-    height: 3rem;
-    min-width: 8rem;
-    padding: 0 1.75rem;
-    font-size: 0.9375rem;
-  }
-  .btn-sm {
-    height: 2rem;
-    min-width: 0;
-    padding: 0 0.9rem;
-    font-size: 0.8125rem;
-  }
-
-  /* Icon-only round button */
-  .icon-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 9999px;
-    color: var(--muted);
-    transition:
-      background-color 0.15s,
-      color 0.15s;
-  }
-  .icon-btn:hover {
-    background: var(--hover);
-    color: var(--fg);
-  }
-
-  /* Day group — open section, spacing does the separating */
-  .day-card {
-    background: transparent;
-    padding: 0;
-    border: 0;
-    box-shadow: none;
-  }
-  .day-card-warn {
-    border-radius: 1.25rem;
-    border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--line));
-    background: color-mix(in srgb, var(--warn) 7%, var(--surface));
-    padding: 0.75rem 0.85rem 0.4rem;
-  }
-
-  /* Thin progress bar (today's completion) */
-  .progress {
-    height: 0.25rem;
-    border-radius: 9999px;
-    background: var(--line);
-    overflow: hidden;
-  }
-  .progress > span {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--accent);
-    transition:
-      width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
-      box-shadow 0.35s ease;
-  }
-  .progress > span.progress-fill-done,
-  .progress-fill-done {
-    /* subtle, no heavy glow */
-    filter: none;
-  }
-
-  @keyframes history-load-slide {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(200%); }
-  }
-  .history-load-bar {
-    animation: history-load-slide 1.1s ease-in-out infinite;
-  }
-
-  .link-btn {
-    border-radius: 0.375rem;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8125rem;
-    color: var(--muted);
-    transition:
-      background-color 0.15s,
-      color 0.15s;
-  }
-  .link-btn:hover {
-    background: var(--hover);
-    color: var(--fg);
   }
 }
 
-/* Task completion: check pops, row fades out slowly and collapses; it fades in again in the completed area */
+/* ── Animations ── */
 @keyframes check-pop {
-  0% {
-    transform: scale(1);
-  }
-  40% {
-    transform: scale(1.35);
-  }
-  100% {
-    transform: scale(1);
-  }
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
 }
 @keyframes task-out {
   0% {
@@ -284,21 +497,9 @@
   animation: toast-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
-    animation: none !important;
-  }
-}
-
-/* Edit dialog: backdrop fades in, sheet slides up */
 @keyframes dialog-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 @keyframes dialog-rise {
   from {
@@ -317,7 +518,6 @@
   animation: dialog-rise 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* History drawer: backdrop fades in; the panel rises on phones and slides in from the right on larger screens */
 @keyframes history-fade {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -335,7 +535,12 @@
 @media (min-width: 640px) {
   .history-panel { animation-name: history-slide; }
 }
+
 @media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
   .history-backdrop,
   .history-panel {
     animation: none !important;

@@ -149,7 +149,7 @@ export function HistorySheet({
         aria-modal="true"
         aria-label={title}
         className={
-          "history-panel flex w-full max-w-lg flex-col overflow-hidden border border-[var(--line)] bg-[var(--bg)] shadow-[0_-8px_40px_rgba(0,0,0,0.45)] sm:h-full sm:max-w-md sm:rounded-none sm:rounded-l-2xl sm:border-r-0 sm:bg-[var(--surface)] " +
+          "history-panel flex w-full max-w-lg flex-col overflow-hidden border border-[var(--line)] bg-[var(--surface-elevated)] shadow-[0_-8px_40px_rgba(0,0,0,0.45)] sm:h-full sm:max-w-md sm:rounded-none sm:rounded-l-2xl sm:border-r-0 " +
           heightClass
         }
         style={{

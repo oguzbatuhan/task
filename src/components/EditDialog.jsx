@@ -7,7 +7,7 @@ import { finalizeSubs } from "../lib/subs.js";
 import { shortDate } from "../lib/dates.js";
 
 const field =
-  "relative flex h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--line-strong)] bg-[var(--bg)] px-3.5 text-base transition-colors focus-within:border-[var(--accent)] sm:text-[0.9375rem]";
+  "relative flex h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] px-3.5 text-base transition-colors focus-within:border-[var(--accent)] sm:text-[0.9375rem]";
 
 // Bottom sheet on phones, centered card on larger screens: edit title, note, subtasks, day and time, or delete.
 // mode "rule": edits a recurring rule instead (title, time and weekdays; no single date).
@@ -95,7 +95,7 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
         role="dialog"
         aria-modal="true"
         aria-label={isRule ? "Edit recurring task" : "Edit task"}
-        className="dialog-sheet max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl border border-[var(--line)] bg-[var(--surface)] px-5 pt-5 shadow-2xl sm:rounded-3xl"
+        className="dialog-sheet max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-[1.25rem] border border-[var(--line)] bg-[var(--surface-elevated)] px-5 pt-5 shadow-2xl sm:rounded-[1.25rem]"
         style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mb-4 flex items-center justify-between">

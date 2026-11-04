@@ -395,18 +395,18 @@ export default function App() {
 
   return (
     <main className="mx-auto w-full max-w-xl pb-36">
-      <header className="mb-7">
+      <header className="mb-8">
         <div className="flex items-center justify-between gap-2">
-          <p className="min-w-0 flex-1 truncate text-sm text-[var(--muted)]">{todayLabel}</p>
-          <div className="-mr-1.5 flex shrink-0 items-center gap-0.5">
+          <p className="min-w-0 flex-1 truncate text-[13px] font-medium tracking-wide text-[var(--muted)]">{todayLabel}</p>
+          <div className="-mr-1 flex shrink-0 items-center gap-1">
             {liveRules.length > 0 ? <RulesButton count={liveRules.length} onClick={() => setRulesOpen(true)} /> : null}
             {hasPast ? <HistoryButton count={allPast.length} onClick={openHistory} /> : null}
             <SyncBar sync={sync} />
           </div>
         </div>
-        <div className="mt-1 flex items-baseline justify-between gap-3">
-          <h1 className="text-[2.25rem] font-semibold leading-none tracking-tight">Today</h1>
-          <p className="tabular shrink-0 text-sm text-[var(--muted)]">
+        <div className="mt-2 flex items-end justify-between gap-3">
+          <h1 className="text-[2.5rem] font-semibold leading-none tracking-tight text-[var(--fg)]">Today</h1>
+          <p className="tabular shrink-0 pb-1 text-[13px] font-medium text-[var(--muted)]">
             {todayItems.length === 0
               ? "Nothing planned"
               : todayDone === todayItems.length
@@ -415,7 +415,7 @@ export default function App() {
           </p>
         </div>
         <div
-          className="progress mt-4"
+          className="progress mt-5"
           role="progressbar"
           aria-label="Today's progress"
           aria-valuemin={0}

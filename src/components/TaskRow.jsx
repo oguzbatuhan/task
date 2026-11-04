@@ -273,8 +273,8 @@ function TaskRowBase({
               "flex h-[1.375rem] w-[1.375rem] items-center justify-center rounded-full border-[1.5px] transition-colors " +
               (phase === "checking" ? "check-pop " : "") +
               (checked
-                ? "done-icon border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
-                : "border-[var(--line-strong)] text-transparent group-hover:border-[var(--accent)]")
+                ? "done-icon border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)] shadow-[0_0_0_3px_var(--accent-soft)]"
+                : "border-[var(--line-strong)] text-transparent group-hover:border-[var(--accent)] group-hover:bg-[var(--accent-soft)]")
             }
           >
             <CheckIcon />

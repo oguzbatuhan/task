@@ -48,7 +48,7 @@ function TimeSheet({ value, onChange, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-label="Pick a time"
-        className="w-full max-w-md rounded-t-3xl border border-[var(--line)] bg-[var(--surface)] px-5 pt-4 shadow-2xl sm:rounded-3xl"
+        className="w-full max-w-md rounded-t-[1.25rem] border border-[var(--line)] bg-[var(--surface-elevated)] px-5 pt-4 shadow-2xl sm:rounded-[1.25rem]"
         style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mb-3 flex items-center justify-between">
@@ -252,7 +252,7 @@ export default function Composer({ today, onAdd }) {
         background: "linear-gradient(to top, var(--bg) 55%, transparent)",
       }}
     >
-      <div className="pointer-events-auto mx-auto w-full max-w-xl overflow-hidden rounded-[1.75rem] border border-[var(--line-strong)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(0,0,0,0.55)]">
+      <div className="pointer-events-auto mx-auto w-full max-w-xl overflow-hidden rounded-[1.25rem] border border-[var(--line)] bg-[var(--surface-elevated)] shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
         {repeatOpen || detailsOpen ? (
           <div className="max-h-[48dvh] overflow-y-auto overscroll-contain">
             {repeatOpen ? (

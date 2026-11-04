@@ -1,5 +1,7 @@
 # Tasks
 
+> **UI redesign (2026-11):** Modern, calm dark interface with soft indigo accent, refined spacing, elevated surfaces, and clearer visual hierarchy. All features and data logic remain unchanged.
+
 A to-do list built with React + Tailwind CSS (user-facing name **Tasks**, technical name `task`). Tasks are grouped by date. A completed task is not deleted; it stays on its own day, struck through and faded. Today and later days appear in the main list; past days are hidden behind a small **History** button (a bottom sheet on phones, a side panel on wide screens). Inside, only days that have tasks are listed, newest to oldest, split by month; the newest day starts open and the others are a single line (day and completed/total). For anything older than 30 days there is an "Older days" button. A time can optionally be added to any task (the **Time** button in the add bar). Tapping a task opens it; **Edit** opens a dialog where you can change its name, description, subtasks, day and time, or delete it. Subtasks can be ticked straight from the opened task. Data is stored in the browser; if you like, sign in with Google to back it up to Supabase and sync across devices. GitHub Actions publishes the site to GitHub Pages on every `main` update.
 
 ### Usage tips
