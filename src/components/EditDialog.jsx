@@ -7,7 +7,7 @@ import { finalizeSubs } from "../lib/subs.js";
 import { shortDate } from "../lib/dates.js";
 
 const field =
-  "relative flex h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] px-3.5 text-base transition-colors focus-within:border-[var(--accent)] sm:text-[0.9375rem]";
+  "relative flex h-12 min-w-0 items-center gap-2 rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] px-3.5 text-base transition-colors focus-within:border-[var(--accent)] sm:h-11 sm:text-[0.9375rem]";
 
 // Bottom sheet on phones, centered card on larger screens: edit title, note, subtasks, day and time, or delete.
 // mode "rule": edits a recurring rule instead (title, time and weekdays; no single date).

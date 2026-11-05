@@ -394,19 +394,19 @@ export default function App() {
   const allStats = historyOpen ? pastStats(allPast) : { total: 0, done: 0 };
 
   return (
-    <main className="mx-auto w-full max-w-xl pb-36">
-      <header className="mb-8">
+    <main className="mx-auto w-full max-w-xl pb-40 sm:max-w-lg md:max-w-xl lg:max-w-2xl sm:pb-36">
+      <header className="mb-6 sm:mb-8">
         <div className="flex items-center justify-between gap-2">
           <p className="min-w-0 flex-1 truncate text-[13px] font-medium tracking-wide text-[var(--muted)]">{todayLabel}</p>
-          <div className="-mr-1 flex shrink-0 items-center gap-1">
+          <div className="-mr-1 flex shrink-0 items-center gap-0.5 sm:gap-1">
             {liveRules.length > 0 ? <RulesButton count={liveRules.length} onClick={() => setRulesOpen(true)} /> : null}
             {hasPast ? <HistoryButton count={allPast.length} onClick={openHistory} /> : null}
             <SyncBar sync={sync} />
           </div>
         </div>
-        <div className="mt-2 flex items-end justify-between gap-3">
-          <h1 className="text-[2.5rem] font-semibold leading-none tracking-tight text-[var(--fg)]">Today</h1>
-          <p className="tabular shrink-0 pb-1 text-[13px] font-medium text-[var(--muted)]">
+        <div className="mt-1.5 flex items-end justify-between gap-3 sm:mt-2">
+          <h1 className="text-[2.25rem] font-semibold leading-none tracking-tight text-[var(--fg)] sm:text-[2.5rem]">Today</h1>
+          <p className="tabular shrink-0 pb-0.5 text-[12px] font-medium text-[var(--muted)] sm:pb-1 sm:text-[13px]">
             {todayItems.length === 0
               ? "Nothing planned"
               : todayDone === todayItems.length
@@ -415,7 +415,7 @@ export default function App() {
           </p>
         </div>
         <div
-          className="progress mt-5"
+          className="progress mt-4 sm:mt-5"
           role="progressbar"
           aria-label="Today's progress"
           aria-valuemin={0}
@@ -432,7 +432,7 @@ export default function App() {
 
       <Composer today={today} onAdd={add} />
 
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-6 sm:gap-8">
         {overdue.length > 0 ? (
           <section
             aria-label="Overdue tasks"

@@ -245,14 +245,14 @@ export default function Composer({ today, onAdd }) {
       className="pointer-events-none fixed inset-x-0 z-30"
       style={{
         bottom: kb,
-        paddingLeft: "max(14px, env(safe-area-inset-left, 0px))",
-        paddingRight: "max(14px, env(safe-area-inset-right, 0px))",
-        paddingBottom: kb > 0 ? "10px" : "max(12px, env(safe-area-inset-bottom, 0px))",
+        paddingLeft: "max(12px, env(safe-area-inset-left, 0px))",
+        paddingRight: "max(12px, env(safe-area-inset-right, 0px))",
+        paddingBottom: kb > 0 ? "8px" : "max(12px, env(safe-area-inset-bottom, 0px))",
         paddingTop: "28px",
         background: "linear-gradient(to top, var(--bg) 55%, transparent)",
       }}
     >
-      <div className="pointer-events-auto mx-auto w-full max-w-xl overflow-hidden rounded-[1.25rem] border border-[var(--line)] bg-[var(--surface-elevated)] shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
+      <div className="pointer-events-auto mx-auto w-full max-w-xl overflow-hidden rounded-[1.25rem] border border-[var(--line)] bg-[var(--surface-elevated)] shadow-[0_8px_32px_rgba(0,0,0,0.45)] sm:max-w-lg md:max-w-xl lg:max-w-2xl">
         {repeatOpen || detailsOpen ? (
           <div className="max-h-[48dvh] overflow-y-auto overscroll-contain">
             {repeatOpen ? (
@@ -313,7 +313,7 @@ export default function Composer({ today, onAdd }) {
             type="submit"
             aria-label="Add task"
             className={
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)] transition-all active:scale-95 " +
+              "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)] transition-all active:scale-95 sm:h-10 sm:w-10 " +
               (empty ? "opacity-0 pointer-events-none scale-90" : "opacity-100")
             }
             tabIndex={empty ? -1 : 0}
