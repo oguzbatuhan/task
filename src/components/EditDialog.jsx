@@ -12,7 +12,15 @@ const field =
 // Bottom sheet on phones, centered card on larger screens: edit title, note, subtasks, day and time, or delete.
 // mode "rule": edits a recurring rule instead (title, time and weekdays; no single date).
 // ruleInfo / onEditRule: shown for a task made by a rule, with a button that opens that rule.
-export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditRule, onSave, onDelete, onClose }) {
+export default function EditDialog({
+  task,
+  mode = "task",
+  ruleInfo = "",
+  onEditRule,
+  onSave,
+  onDelete,
+  onClose,
+}) {
   const isRule = mode === "rule";
   const [days, setDays] = useState(task.days || []);
   const [count, setCount] = useState(task.count || 0);
@@ -35,7 +43,8 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     // On phones the keyboard would open at once and cover the day/time fields, so only focus with a mouse
-    const fine = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
+    const fine =
+      window.matchMedia && window.matchMedia("(pointer: fine)").matches;
     if (fine && inputRef.current) inputRef.current.focus();
     return () => {
       document.body.style.overflow = overflow;
@@ -55,7 +64,11 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
     // Only while the keyboard is open (visible area clearly shorter than the window); otherwise the sheet keeps its
     // plain full-screen position, so a wrong viewport offset can never push it off screen
     const update = () =>
-      setVv(window.innerHeight - vp.height > 120 ? { h: vp.height, top: vp.offsetTop } : null);
+      setVv(
+        window.innerHeight - vp.height > 120
+          ? { h: vp.height, top: vp.offsetTop }
+          : null,
+      );
     update();
     vp.addEventListener("resize", update);
     vp.addEventListener("scroll", update);
@@ -79,15 +92,29 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
       if (!hasRepeat) return;
       return onSave(task.id, { title: text, time, days, count, subs, note });
     }
-    onSave(task.id, { title: text, date, time, note, subs: finalizeSubs(subs) });
+    onSave(task.id, {
+      title: text,
+      date,
+      time,
+      note,
+      subs: finalizeSubs(subs),
+    });
   }
 
   return (
     <div
       className="dialog-backdrop fixed inset-x-0 top-0 z-50 flex h-dvh items-end justify-center overscroll-contain bg-black/40 sm:items-center sm:p-5"
-      style={vv ? { height: vv.h + "px", transform: "translateY(" + vv.top + "px)" } : undefined}
+      style={
+        vv
+          ? { height: vv.h + "px", transform: "translateY(" + vv.top + "px)" }
+          : undefined
+      }
       // Ignore taps in the first moment: the tap that opened the sheet must never close it (ghost mouse events on phones)
-      onMouseDown={(e) => e.target === e.currentTarget && Date.now() - openedAt.current > 500 && onClose()}
+      onMouseDown={(e) =>
+        e.target === e.currentTarget &&
+        Date.now() - openedAt.current > 500 &&
+        onClose()
+      }
       onKeyDown={onKeyDown}
     >
       <form
@@ -99,7 +126,9 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
         style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-medium">{isRule ? "Edit recurring task" : "Edit task"}</h2>
+          <h2 className="text-base font-medium">
+            {isRule ? "Edit recurring task" : "Edit task"}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -120,7 +149,10 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
             autoComplete="off"
             aria-label="Task name"
             placeholder="Task name"
-            className={field + " w-full text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"}
+            className={
+              field +
+              " w-full text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"
+            }
           />
 
           <textarea
@@ -130,37 +162,45 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
             rows={3}
             aria-label="Description"
             placeholder="Description (optional)"
-            className={field + " h-auto w-full resize-none py-2.5 text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"}
+            className={
+              field +
+              " h-auto w-full resize-none py-2.5 text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"
+            }
           />
 
           {isRule ? (
-            <div className="rounded-xl border border-[var(--line-strong)] bg-[var(--bg)] px-3.5 py-2">
+            <div className="rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] px-3.5 py-2">
               <SubDraft subs={subs} onChange={setSubs} />
             </div>
           ) : (
             <SubtaskEditor subs={subs} onChange={setSubs} />
           )}
 
-          <div className={"grid gap-2.5 [&>*]:min-w-0 " + (isRule ? "grid-cols-1" : "grid-cols-2")}>
+          <div
+            className={
+              "grid gap-2.5 [&>*]:min-w-0 " +
+              (isRule ? "grid-cols-1" : "grid-cols-2")
+            }
+          >
             {isRule ? null : (
-            <label className={field + " cursor-pointer"}>
-              <span className="text-[var(--muted)]">
-                <CalendarIcon />
-              </span>
-              <span className="truncate">{shortDate(date)}</span>
-              <input
-                type="date"
-                value={date}
-                aria-label="Date"
-                onChange={(e) => e.target.value && setDate(e.target.value)}
-                onClick={(e) => {
-                  try {
-                    e.currentTarget.showPicker();
-                  } catch {}
-                }}
-                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-              />
-            </label>
+              <label className={field + " cursor-pointer"}>
+                <span className="text-[var(--muted)]">
+                  <CalendarIcon />
+                </span>
+                <span className="truncate">{shortDate(date)}</span>
+                <input
+                  type="date"
+                  value={date}
+                  aria-label="Date"
+                  onChange={(e) => e.target.value && setDate(e.target.value)}
+                  onClick={(e) => {
+                    try {
+                      e.currentTarget.showPicker();
+                    } catch {}
+                  }}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                />
+              </label>
             )}
 
             <div className={field + " cursor-pointer pr-2"}>
@@ -213,7 +253,8 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
                 }}
               />
               <p className="mt-2 text-xs text-[var(--muted)]">
-                Changes apply from today on, to unfinished occurrences. Past and completed tasks stay as they are.
+                Changes apply from today on, to unfinished occurrences. Past and
+                completed tasks stay as they are.
               </p>
             </div>
           ) : ruleInfo ? (
@@ -221,8 +262,14 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
               <span className="text-[var(--accent)]">
                 <RepeatIcon />
               </span>
-              <span className="min-w-0 flex-1 truncate text-[var(--muted)]">{ruleInfo}</span>
-              <button type="button" onClick={onEditRule} className="btn btn-ghost btn-sm">
+              <span className="min-w-0 flex-1 truncate text-[var(--muted)]">
+                {ruleInfo}
+              </span>
+              <button
+                type="button"
+                onClick={onEditRule}
+                className="btn btn-ghost btn-sm"
+              >
                 Edit repeat
               </button>
             </div>
@@ -236,7 +283,9 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
             className="mt-6 flex flex-wrap items-center gap-2"
           >
             <p className="min-w-0 flex-1 basis-full text-sm sm:basis-0">
-              {isRule ? "Delete this recurring task? Unfinished occurrences from today on will be deleted too." : "Delete this task?"}
+              {isRule
+                ? "Delete this recurring task? Unfinished occurrences from today on will be deleted too."
+                : "Delete this task?"}
             </p>
             <button
               ref={cancelRef}
@@ -264,13 +313,20 @@ export default function EditDialog({ task, mode = "task", ruleInfo = "", onEditR
               Delete
             </button>
             <span className="flex-1" aria-hidden="true"></span>
-            <button type="button" onClick={onClose} className="btn btn-ghost min-w-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn btn-ghost min-w-0"
+            >
               Cancel
             </button>
             <button
               type="submit"
               aria-disabled={!text || (isRule && !hasRepeat)}
-              className={"btn btn-solid min-w-0 " + (text && (!isRule || hasRepeat) ? "" : "opacity-40")}
+              className={
+                "btn btn-solid min-w-0 " +
+                (text && (!isRule || hasRepeat) ? "" : "opacity-40")
+              }
             >
               Save
             </button>

@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowUpIcon, CalendarIcon, ClockIcon, CloseIcon, NoteIcon, PlusIcon, RepeatIcon } from "./Icons.jsx";
+import {
+  ArrowUpIcon,
+  CalendarIcon,
+  ClockIcon,
+  CloseIcon,
+  NoteIcon,
+  PlusIcon,
+  RepeatIcon,
+} from "./Icons.jsx";
 import DayPicker from "./DayPicker.jsx";
 import SubDraft from "./SubDraft.jsx";
 import { describeDays } from "../lib/repeat.js";
@@ -15,7 +23,20 @@ const toolOff =
 const toolOn = "bg-[var(--accent-soft)] px-2.5 text-[var(--fg)]";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
-const MINS = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
+const MINS = [
+  "00",
+  "05",
+  "10",
+  "15",
+  "20",
+  "25",
+  "30",
+  "35",
+  "40",
+  "45",
+  "50",
+  "55",
+];
 const PRESETS = ["09:00", "12:00", "14:00", "18:00", "20:00", "21:30"];
 
 // Mobile-friendly time sheet (avoids broken native time pickers on phones)
@@ -41,7 +62,8 @@ function TimeSheet({ value, onChange, onClose }) {
     <div
       className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 sm:items-center sm:p-5"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget && Date.now() - openedAt.current > 300) onClose();
+        if (e.target === e.currentTarget && Date.now() - openedAt.current > 300)
+          onClose();
       }}
     >
       <div
@@ -53,7 +75,12 @@ function TimeSheet({ value, onChange, onClose }) {
       >
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-medium">Time</h3>
-          <button type="button" onClick={onClose} aria-label="Close" className="icon-btn">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="icon-btn"
+          >
             <CloseIcon />
           </button>
         </div>
@@ -79,31 +106,49 @@ function TimeSheet({ value, onChange, onClose }) {
         <div className="mb-4 grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
             Hour
-            <select
-              value={h}
-              onChange={(e) => setH(e.target.value)}
-              className="h-11 rounded-xl border border-[var(--line-strong)] bg-[var(--bg)] px-3 text-base text-[var(--fg)]"
-            >
-              {HOURS.map((x) => (
-                <option key={x} value={x}>
-                  {x}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={h}
+                onChange={(e) => setH(e.target.value)}
+                className="cursor-pointer h-11 w-full appearance-none rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] pl-3 pr-9 text-base text-[var(--fg)]"
+              >
+                {HOURS.map((x) => (
+                  <option key={x} value={x}>
+                    {x}
+                  </option>
+                ))}
+              </select>
+              <svg
+                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" />
+              </svg>
+            </div>
           </label>
           <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
             Minute
-            <select
-              value={MINS.includes(m) ? m : "00"}
-              onChange={(e) => setM(e.target.value)}
-              className="h-11 rounded-xl border border-[var(--line-strong)] bg-[var(--bg)] px-3 text-base text-[var(--fg)]"
-            >
-              {MINS.map((x) => (
-                <option key={x} value={x}>
-                  {x}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={MINS.includes(m) ? m : "00"}
+                onChange={(e) => setM(e.target.value)}
+                className="cursor-pointer h-11 w-full appearance-none rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] pl-3 pr-9 text-base text-[var(--fg)]"
+              >
+                {MINS.map((x) => (
+                  <option key={x} value={x}>
+                    {x}
+                  </option>
+                ))}
+              </select>
+              <svg
+                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" />
+              </svg>
+            </div>
           </label>
         </div>
 
@@ -120,7 +165,11 @@ function TimeSheet({ value, onChange, onClose }) {
               Remove time
             </button>
           ) : null}
-          <button type="button" onClick={() => apply(h, MINS.includes(m) ? m : "00")} className="btn btn-solid flex-1">
+          <button
+            type="button"
+            onClick={() => apply(h, MINS.includes(m) ? m : "00")}
+            className="btn btn-solid flex-1"
+          >
             OK
           </button>
         </div>
@@ -135,7 +184,10 @@ function useKeyboardInset() {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => setInset(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
+    const update = () =>
+      setInset(
+        Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)),
+      );
     update();
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
@@ -173,7 +225,10 @@ export default function Composer({ today, onAdd }) {
   const empty = !title.trim();
 
   // Live quick-add: "tomorrow 14:30 report" lights up the day and time right while typing
-  const quick = useMemo(() => (empty ? null : parseQuick(title, today, tomorrow)), [title, empty, today, tomorrow]);
+  const quick = useMemo(
+    () => (empty ? null : parseQuick(title, today, tomorrow)),
+    [title, empty, today, tomorrow],
+  );
   const effDate = quick?.date || date;
   const effTime = quick?.time || time;
   const custom = effDate !== today && effDate !== tomorrow;
@@ -184,7 +239,8 @@ export default function Composer({ today, onAdd }) {
   useEffect(() => {
     if (!focused) return;
     const onDown = (e) => {
-      if (formRef.current && !e.composedPath().includes(formRef.current)) setFocused(false);
+      if (formRef.current && !e.composedPath().includes(formRef.current))
+        setFocused(false);
     };
     document.addEventListener("pointerdown", onDown);
     return () => document.removeEventListener("pointerdown", onDown);
@@ -229,9 +285,12 @@ export default function Composer({ today, onAdd }) {
   const hasExtras = date !== today || !!time || repeating || hasDetails;
   const dayBtn = (on) =>
     "h-8 rounded-full px-3 text-[0.8125rem] font-medium transition-colors " +
-    (on ? "bg-[var(--fg)] text-[var(--bg)]" : "text-[var(--muted)] hover:text-[var(--fg)]");
+    (on
+      ? "bg-[var(--fg)] text-[var(--bg)]"
+      : "text-[var(--muted)] hover:text-[var(--fg)]");
 
-  const expanded = focused || !empty || hasExtras || repeatOpen || detailsOpen || timeOpen;
+  const expanded =
+    focused || !empty || hasExtras || repeatOpen || detailsOpen || timeOpen;
 
   return (
     <form
@@ -240,14 +299,16 @@ export default function Composer({ today, onAdd }) {
       onFocus={() => setFocused(true)}
       onBlur={(e) => {
         // Tabbing out of the dock folds it (taps are handled by the pointerdown listener above)
-        if (e.relatedTarget && !e.currentTarget.contains(e.relatedTarget)) setFocused(false);
+        if (e.relatedTarget && !e.currentTarget.contains(e.relatedTarget))
+          setFocused(false);
       }}
       className="pointer-events-none fixed inset-x-0 z-30"
       style={{
         bottom: kb,
         paddingLeft: "max(12px, env(safe-area-inset-left, 0px))",
         paddingRight: "max(12px, env(safe-area-inset-right, 0px))",
-        paddingBottom: kb > 0 ? "8px" : "max(12px, env(safe-area-inset-bottom, 0px))",
+        paddingBottom:
+          kb > 0 ? "8px" : "max(12px, env(safe-area-inset-bottom, 0px))",
         paddingTop: "28px",
         background: "linear-gradient(to top, var(--bg) 55%, transparent)",
       }}
@@ -260,7 +321,9 @@ export default function Composer({ today, onAdd }) {
                 <DayPicker days={days} count={count} onChange={setRepeat} />
                 {repeating ? (
                   <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">
-                    {(effDate > tomorrow ? "Starts on " + shortDate(effDate) + ". " : "") +
+                    {(effDate > tomorrow
+                      ? "Starts on " + shortDate(effDate) + ". "
+                      : "") +
                       "Only shown for today and tomorrow; later days are added when they come up."}
                   </p>
                 ) : null}
@@ -275,10 +338,14 @@ export default function Composer({ today, onAdd }) {
                   rows={2}
                   aria-label="Description"
                   placeholder="Description (optional)"
-                  className="w-full resize-none rounded-xl border border-[var(--line)] bg-[var(--bg)] px-3.5 py-2.5 text-base text-[var(--fg)] outline-none transition-colors placeholder:text-[var(--muted)] focus:border-[var(--line-strong)] sm:text-[0.9375rem]"
+                  className="w-full resize-none rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-base text-[var(--fg)] outline-none transition-colors placeholder:text-[var(--muted)] focus:border-[var(--line-strong)] sm:text-[0.9375rem]"
                 />
                 <div className="mt-2.5">
-                  <SubDraft subs={subs} onChange={setSubs} repeating={repeating} />
+                  <SubDraft
+                    subs={subs}
+                    onChange={setSubs}
+                    repeating={repeating}
+                  />
                 </div>
               </div>
             ) : null}
@@ -325,11 +392,21 @@ export default function Composer({ today, onAdd }) {
         {expanded ? (
           <div className="task-in flex items-center gap-1 border-t border-[var(--line)] px-2 py-1.5">
             <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="mr-1 flex shrink-0 items-center rounded-full bg-[var(--bg)] p-0.5 ring-1 ring-[var(--line)]">
-                <button type="button" aria-pressed={effDate === today} onClick={() => setDate(today)} className={dayBtn(effDate === today)}>
+              <div className="mr-1 flex shrink-0 items-center rounded-full bg-[var(--surface)] p-0.5 ring-1 ring-[var(--line)]">
+                <button
+                  type="button"
+                  aria-pressed={effDate === today}
+                  onClick={() => setDate(today)}
+                  className={dayBtn(effDate === today)}
+                >
                   Today
                 </button>
-                <button type="button" aria-pressed={effDate === tomorrow} onClick={() => setDate(tomorrow)} className={dayBtn(effDate === tomorrow)}>
+                <button
+                  type="button"
+                  aria-pressed={effDate === tomorrow}
+                  onClick={() => setDate(tomorrow)}
+                  className={dayBtn(effDate === tomorrow)}
+                >
                   Tomorrow
                 </button>
               </div>
@@ -348,7 +425,11 @@ export default function Composer({ today, onAdd }) {
                 className={tool + (custom ? toolOn : toolOff)}
               >
                 <CalendarIcon />
-                {custom ? <span className="whitespace-nowrap">{relativeName(effDate, today) || shortDate(effDate)}</span> : null}
+                {custom ? (
+                  <span className="whitespace-nowrap">
+                    {relativeName(effDate, today) || shortDate(effDate)}
+                  </span>
+                ) : null}
               </button>
               {/* Native date input kept off-layout for picker API */}
               <input
@@ -361,16 +442,30 @@ export default function Composer({ today, onAdd }) {
                 onChange={(e) => e.target.value && setDate(e.target.value)}
                 className="pointer-events-none absolute h-0 w-0 opacity-0"
               />
-              <button type="button" aria-label="Set a time" onClick={() => setTimeOpen(true)} className={tool + (effTime ? toolOn : toolOff)}>
+              <button
+                type="button"
+                aria-label="Set a time"
+                onClick={() => setTimeOpen(true)}
+                className={tool + (effTime ? toolOn : toolOff)}
+              >
                 <ClockIcon />
-                {effTime ? <span className="tabular whitespace-nowrap">{effTime}</span> : null}
+                {effTime ? (
+                  <span className="tabular whitespace-nowrap">{effTime}</span>
+                ) : null}
               </button>
               <button
                 type="button"
                 aria-label="Repeat"
                 aria-expanded={repeatOpen}
                 onClick={() => setRepeatOpen((o) => !o)}
-                className={tool + (repeating ? toolOn : repeatOpen ? "w-9 bg-[var(--hover)] text-[var(--fg)]" : toolOff)}
+                className={
+                  tool +
+                  (repeating
+                    ? toolOn
+                    : repeatOpen
+                      ? "w-9 bg-[var(--hover)] text-[var(--fg)]"
+                      : toolOff)
+                }
               >
                 <RepeatIcon />
                 {repeating ? (
@@ -384,10 +479,21 @@ export default function Composer({ today, onAdd }) {
                 aria-label="Details"
                 aria-expanded={detailsOpen}
                 onClick={() => setDetailsOpen((o) => !o)}
-                className={tool + (hasDetails ? toolOn : detailsOpen ? "w-9 bg-[var(--hover)] text-[var(--fg)]" : toolOff)}
+                className={
+                  tool +
+                  (hasDetails
+                    ? toolOn
+                    : detailsOpen
+                      ? "w-9 bg-[var(--hover)] text-[var(--fg)]"
+                      : toolOff)
+                }
               >
                 <NoteIcon />
-                {hasDetails ? <span className="tabular whitespace-nowrap">{(note.trim() ? 1 : 0) + subs.length}</span> : null}
+                {hasDetails ? (
+                  <span className="tabular whitespace-nowrap">
+                    {(note.trim() ? 1 : 0) + subs.length}
+                  </span>
+                ) : null}
               </button>
             </div>
             {hasExtras ? (
@@ -405,7 +511,11 @@ export default function Composer({ today, onAdd }) {
 
       {timeOpen
         ? createPortal(
-            <TimeSheet value={effTime} onChange={setTime} onClose={() => setTimeOpen(false)} />,
+            <TimeSheet
+              value={effTime}
+              onChange={setTime}
+              onClose={() => setTimeOpen(false)}
+            />,
             document.body,
           )
         : null}

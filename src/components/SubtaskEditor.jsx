@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { CheckIcon, CloseIcon, PlusIcon } from "./Icons.jsx";
-import { MAX_SUBS, SUB_TITLE_MAX, addSub, liveSubs, removeSub, renameSub, toggleSub } from "../lib/subs.js";
+import {
+  MAX_SUBS,
+  SUB_TITLE_MAX,
+  addSub,
+  liveSubs,
+  removeSub,
+  renameSub,
+  toggleSub,
+} from "../lib/subs.js";
 
 // Subtask list inside the Edit dialog: tick, rename, remove and add. `subs` is the task's full list (removed ones
 // stay inside it as tombstones so the removal syncs); only the live ones are shown.
@@ -15,10 +23,14 @@ export default function SubtaskEditor({ subs, onChange }) {
     setText("");
   };
   return (
-    <div className="rounded-xl border border-[var(--line-strong)] bg-[var(--bg)] px-3.5 py-2">
+    <div className="rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] px-3.5 py-2">
       <p className="mb-0.5 flex items-center text-xs text-[var(--muted)]">
         <span>Subtasks</span>
-        {live.length ? <span className="tabular ml-auto">{live.filter((s) => s.done).length}/{live.length}</span> : null}
+        {live.length ? (
+          <span className="tabular ml-auto">
+            {live.filter((s) => s.done).length}/{live.length}
+          </span>
+        ) : null}
       </p>
       {live.length > 0 ? (
         <ul>
@@ -28,7 +40,10 @@ export default function SubtaskEditor({ subs, onChange }) {
                 type="button"
                 role="checkbox"
                 aria-checked={s.done}
-                aria-label={(s.done ? "Mark as not completed: " : "Mark as completed: ") + s.title}
+                aria-label={
+                  (s.done ? "Mark as not completed: " : "Mark as completed: ") +
+                  s.title
+                }
                 onClick={() => onChange(toggleSub(subs, s.id))}
                 className={
                   "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors " +
@@ -41,13 +56,17 @@ export default function SubtaskEditor({ subs, onChange }) {
               </button>
               <input
                 value={s.title}
-                onChange={(e) => onChange(renameSub(subs, s.id, e.target.value))}
+                onChange={(e) =>
+                  onChange(renameSub(subs, s.id, e.target.value))
+                }
                 onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
                 maxLength={SUB_TITLE_MAX}
                 aria-label="Subtask name"
                 className={
                   "min-w-0 flex-1 bg-transparent py-1 text-sm outline-none " +
-                  (s.done ? "text-[var(--muted)] line-through opacity-60" : "text-[var(--fg)]")
+                  (s.done
+                    ? "text-[var(--muted)] line-through opacity-60"
+                    : "text-[var(--fg)]")
                 }
               />
               <button
@@ -63,7 +82,10 @@ export default function SubtaskEditor({ subs, onChange }) {
         </ul>
       ) : null}
       <div className="flex items-center gap-2">
-        <span className="flex h-4 w-4 shrink-0 items-center justify-center text-[var(--muted)] [&>svg]:h-3.5 [&>svg]:w-3.5" aria-hidden="true">
+        <span
+          className="flex h-4 w-4 shrink-0 items-center justify-center text-[var(--muted)] [&>svg]:h-3.5 [&>svg]:w-3.5"
+          aria-hidden="true"
+        >
           <PlusIcon />
         </span>
         <input
