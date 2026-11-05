@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronIcon, CloseIcon, HistoryIcon } from "./Icons.jsx";
 
-// Quiet icon button in the page header. The whole history stays hidden behind it.
 const FOCUSABLE =
   'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
+// Quiet icon button in the page header
 export function HistoryButton({ count, onClick }) {
   return (
     <button
@@ -23,7 +23,6 @@ export function HistoryButton({ count, onClick }) {
 export function HistorySheet({
   title = "History",
   summary,
-  toolbar,
   onClose,
   children,
 }) {
@@ -32,7 +31,6 @@ export function HistorySheet({
   const closeFn = useRef(onClose);
   closeFn.current = onClose;
   const openedAt = useRef(Date.now());
-  const [expanded, setExpanded] = useState(false);
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
   const drag = useRef(null);
@@ -98,44 +96,18 @@ export function HistorySheet({
   const onHandleMove = (e) => {
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
-    let dy = e.clientY - d.y0;
-    if (expanded) {
-      if (dy < 0) dy = 0;
-    } else if (dy < 0) {
-      dy = Math.max(dy, -120);
-    }
-    d.dy = dy;
-    setOffset(dy);
+    d.dy = Math.max(0, e.clientY - d.y0);
+    setOffset(d.dy);
   };
 
   const endDrag = (e) => {
     const d = drag.current;
-    if (!d) return;
-    if (e && d.id !== e.pointerId) return;
-    const dy = d.dy || 0;
+    if (!d || (e && d.id !== e.pointerId)) return;
     drag.current = null;
     setDragging(false);
-    if (dy > 110) {
-      setOffset(0);
-      closeFn.current();
-      return;
-    }
-    if (!expanded && dy < -50) {
-      setExpanded(true);
-      setOffset(0);
-      return;
-    }
-    if (expanded && dy > 70) {
-      setExpanded(false);
-      setOffset(0);
-      return;
-    }
     setOffset(0);
+    if (d.dy > 110) closeFn.current();
   };
-
-  const heightClass = expanded
-    ? "h-[100dvh] rounded-none"
-    : "h-[90dvh] rounded-t-[1.5rem]";
 
   return (
     <div
@@ -152,14 +124,13 @@ export function HistorySheet({
         aria-modal="true"
         aria-label={title}
         className={
-          "history-panel flex w-full max-w-lg flex-col overflow-hidden border border-[var(--line)] bg-[var(--surface-elevated)] shadow-[0_-8px_40px_rgba(0,0,0,0.45)] sm:h-full sm:max-w-md sm:rounded-none sm:rounded-l-2xl sm:border-r-0 " +
-          heightClass
+          "history-panel flex h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.5rem] border border-[var(--line)] bg-[var(--surface-elevated)] shadow-[0_-8px_40px_rgba(0,0,0,0.45)] sm:h-full sm:max-w-md sm:rounded-l-2xl sm:rounded-r-none sm:border-r-0"
         }
         style={{
           transform: offset ? "translateY(" + offset + "px)" : undefined,
           transition: dragging
             ? "none"
-            : "transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), border-radius 0.28s ease",
+            : "transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)",
         }}
       >
         {/* Mobile drag zone */}
@@ -209,12 +180,6 @@ export function HistorySheet({
 
         {summary ? (
           <div className="shrink-0 px-6 pb-4">{summary}</div>
-        ) : null}
-
-        {toolbar ? (
-          <div className="shrink-0 px-5 pb-3">
-            {toolbar}
-          </div>
         ) : null}
 
         <div

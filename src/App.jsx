@@ -111,13 +111,25 @@ export default function App() {
     if (!hasPast) setHistoryOpen(false);
   }, [hasPast]);
 
+  // done/total per past day, computed once
+  const dayStats = useMemo(() => {
+    const m = new Map();
+    if (!historyOpen) return m;
+    for (const d of allPast) {
+      const all = byDate.get(d) || [];
+      m.set(d, { total: all.length, done: all.filter((t) => t.done).length });
+    }
+    return m;
+  }, [historyOpen, allPast, byDate]);
   const pastStats = (list) => {
     let total = 0;
     let done = 0;
     for (const d of list) {
-      const all = byDate.get(d) || [];
-      total += all.length;
-      done += all.filter((t) => t.done).length;
+      const st = dayStats.get(d);
+      if (st) {
+        total += st.total;
+        done += st.done;
+      }
     }
     return { total, done };
   };
@@ -371,7 +383,7 @@ export default function App() {
     return l.secondary;
   })();
 
-  const allStats = historyOpen ? pastStats(allPast) : { total: 0, done: 0 };
+  const allStats = pastStats(allPast);
 
   return (
     <main className="mx-auto w-full max-w-xl pb-40 sm:max-w-lg md:max-w-xl lg:max-w-2xl sm:pb-36">

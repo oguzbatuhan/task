@@ -172,15 +172,6 @@ export function RepeatIcon() {
   );
 }
 
-export function SearchIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 18 18" {...base}>
-      <circle cx="8" cy="8" r="5.25" strokeWidth="1.5" {...stroke} />
-      <path d="M12.2 12.2L15.5 15.5" strokeWidth="1.5" {...stroke} />
-    </svg>
-  );
-}
-
 export function ListIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 14 14" {...base}>
