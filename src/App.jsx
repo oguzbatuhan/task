@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DoneHead, GroupHead, TaskRow } from "./components/TaskRow.jsx";
-import { HistoryButton, HistoryDay, HistoryEmpty, HistoryLoadMore, HistorySheet, HistoryStats, HistoryToolbar, MonthHead } from "./components/History.jsx";
+import { HistoryButton, HistoryDay, HistoryEmpty, HistoryLoadMore, HistorySheet, HistoryStats, MonthHead } from "./components/History.jsx";
 import Composer from "./components/Composer.jsx";
 import SyncBar from "./components/SyncBar.jsx";
 import EditDialog from "./components/EditDialog.jsx";
@@ -8,7 +8,7 @@ import SortableList from "./components/SortableList.jsx";
 import Toast from "./components/Toast.jsx";
 import { useCloudSync } from "./hooks/useCloudSync.js";
 import { usePersist } from "./hooks/usePersist.js";
-import { dayBadge, groupLabel, relativeName, shiftIso, shortDate, toIso } from "./lib/dates.js";
+import { groupLabel, relativeName, shiftIso, shortDate, toIso } from "./lib/dates.js";
 import { groupByMonth } from "./lib/history.js";
 import { STORAGE_KEY, cleanNote, loadTasks, maxOrder, newTask, patchTask } from "./lib/tasks.js";
 import { normalizeSubs, toggleSub } from "./lib/subs.js";
@@ -25,8 +25,6 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLimit, setHistoryLimit] = useState(HISTORY_PAGE_DAYS);
   const [openDays, setOpenDays] = useState(() => new Set());
-  const [historyQuery, setHistoryQuery] = useState("");
-  const [historyFilter, setHistoryFilter] = useState("all"); // all | done | pending
   const [tasks, setTasks] = useState(loadTasks);
   // Recurring rules: kept next to the tasks, they create the tasks of the coming days (see lib/repeat.js)
   const [rules, setRules] = useState(loadRules);
@@ -98,10 +96,8 @@ export default function App() {
 
   // Opening starts fresh: newest day open, first page of days
   const openHistory = () => {
-    setOpenDays(new Set(allPast.length ? [allPast[0]] : []));
+    setOpenDays(new Set());
     setHistoryLimit(HISTORY_PAGE_DAYS);
-    setHistoryQuery("");
-    setHistoryFilter("all");
     setHistoryOpen(true);
   };
   const toggleDay = (date) =>
@@ -126,26 +122,10 @@ export default function App() {
     return { total, done };
   };
 
-  // Filtered past days (search + status filter). Keeps newest-first order.
-  const filteredPast = useMemo(() => {
-    if (!historyOpen) return [];
-    const q = historyQuery.trim().toLocaleLowerCase("en");
-    return allPast.slice(0, historyLimit).filter((date) => {
-      const all = byDate.get(date) || [];
-      if (historyFilter === "done" && !all.some((t) => t.done)) return false;
-      if (historyFilter === "pending" && !all.some((t) => !t.done)) return false;
-      if (!q) return true;
-      const label = groupLabel(date, today);
-      const hay = (
-        label.primary +
-        " " +
-        (label.secondary || "") +
-        " " +
-        all.map((t) => t.title).join(" ")
-      ).toLocaleLowerCase("en");
-      return hay.includes(q);
-    });
-  }, [historyOpen, allPast, historyLimit, historyQuery, historyFilter, byDate, today]);
+  const filteredPast = useMemo(
+    () => (historyOpen ? allPast.slice(0, historyLimit) : []),
+    [historyOpen, allPast, historyLimit],
+  );
 
   const pastMonths = useMemo(
     () => (historyOpen ? groupByMonth(filteredPast.map((date) => ({ date })), today) : []),
@@ -397,8 +377,8 @@ export default function App() {
     <main className="mx-auto w-full max-w-xl pb-40 sm:max-w-lg md:max-w-xl lg:max-w-2xl sm:pb-36">
       <header className="mb-6 sm:mb-8">
         <div className="flex items-center justify-between gap-2">
-          <p className="min-w-0 flex-1 truncate text-[13px] font-medium tracking-wide text-[var(--muted)]">{todayLabel}</p>
-          <div className="-mr-1 flex shrink-0 items-center gap-0.5 sm:gap-1">
+          <p className="min-w-0 flex-1 truncate text-[13px] text-[var(--muted)]">{todayLabel}</p>
+          <div className="-mr-2.5 flex shrink-0 items-center sm:-mr-2">
             {liveRules.length > 0 ? <RulesButton count={liveRules.length} onClick={() => setRulesOpen(true)} /> : null}
             {hasPast ? <HistoryButton count={allPast.length} onClick={openHistory} /> : null}
             <SyncBar sync={sync} />
@@ -476,22 +456,9 @@ export default function App() {
         <HistorySheet
           summary={<HistoryStats days={allPast.length} done={allStats.done} total={allStats.total} />}
           onClose={() => setHistoryOpen(false)}
-          toolbar={
-            <HistoryToolbar
-              query={historyQuery}
-              onQueryChange={setHistoryQuery}
-              filter={historyFilter}
-              onFilterChange={setHistoryFilter}
-              allOpen={filteredPast.length > 0 && filteredPast.every((d) => openDays.has(d))}
-              onToggleAll={() =>
-                setOpenDays(filteredPast.every((d) => openDays.has(d)) ? new Set() : new Set(filteredPast))
-              }
-              hasDays={filteredPast.length > 0}
-            />
-          }
         >
           {pastMonths.length === 0 ? (
-            <HistoryEmpty query={historyQuery} filter={historyFilter} />
+            <HistoryEmpty />
           ) : (
             pastMonths.map((m) => {
               const st = pastStats(m.days.map((d) => d.date));
@@ -508,7 +475,6 @@ export default function App() {
                         key={date}
                         primary={label.primary}
                         secondary={label.secondary}
-                        badge={dayBadge(date)}
                         done={completed.length}
                         total={all.length}
                         open={openDays.has(date)}

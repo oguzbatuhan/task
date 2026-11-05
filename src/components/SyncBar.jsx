@@ -1,20 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertIcon, CloudIcon, RefreshIcon, UnlinkIcon } from "./Icons.jsx";
 
-const pill =
-  "inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-[0.8125rem] font-medium transition-colors ";
-const pillNeutral =
-  "border-transparent text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]";
-const pillAccent = "border-transparent bg-[var(--accent-soft)] text-[var(--accent)] hover:opacity-85";
-const pillWarn = "border-[var(--warn)] text-[var(--warn)] hover:bg-[var(--hover)]";
 const menuItem =
-  "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--hover)]";
+  "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm transition-colors hover:bg-[var(--hover)] active:bg-[var(--hover)]";
 
 function timeText(ms) {
   return new Date(ms).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 }
 
-// Cloud backup chip for the top-right corner of the header; the menu holds the actions
+// Cloud backup: one quiet icon button in the header, same size as its neighbours.
+// Status is a tiny dot on the icon; everything else lives in the menu.
 export default function SyncBar({ sync }) {
   const { configured, connected, status, lastSynced, error, email, connect, disconnect, syncNow } = sync;
   const [menu, setMenu] = useState(false);
@@ -34,32 +29,31 @@ export default function SyncBar({ sync }) {
 
   if (!configured) return null;
 
+  // Not signed in: tap goes straight to Google sign-in
   if (!connected || status === "off") {
     return (
-      <button type="button" onClick={connect} className={pill + pillAccent}>
+      <button
+        type="button"
+        onClick={connect}
+        aria-label="Back up with Google"
+        title="Back up with Google"
+        className="icon-btn"
+      >
         <CloudIcon />
-        Connect<span className="hidden sm:inline"> with Google</span>
       </button>
     );
   }
 
-  if (status === "needs-auth") {
-    return (
-      <div className="flex items-center gap-1" role="status">
-        <button type="button" onClick={connect} className={pill + pillWarn}>
-          <AlertIcon />
-          Reconnect
-        </button>
-        <button type="button" onClick={disconnect} aria-label="Disconnect" className="icon-btn">
-          <UnlinkIcon />
-        </button>
-      </div>
-    );
-  }
-
+  const needsAuth = status === "needs-auth";
   const syncing = status === "syncing";
   const failed = status === "error";
-  const label = failed ? "Error" : syncing ? "Syncing" : lastSynced ? timeText(lastSynced) : "Backup";
+  const bad = needsAuth || failed;
+
+  const info = needsAuth
+    ? "Session expired. Sign in again to keep backing up."
+    : failed && error
+      ? error
+      : (email || "Google account") + (lastSynced ? " · synced " + timeText(lastSynced) : "");
 
   return (
     <div className="relative" ref={box}>
@@ -67,39 +61,39 @@ export default function SyncBar({ sync }) {
         type="button"
         aria-haspopup="menu"
         aria-expanded={menu}
-        aria-label="Cloud backup"
+        aria-label={needsAuth ? "Cloud backup: sign in again" : failed ? "Cloud backup: error" : syncing ? "Syncing" : "Cloud backup"}
         onClick={() => setMenu((v) => !v)}
-        className={pill + (failed ? pillWarn : pillNeutral)}
+        className="icon-btn relative"
+        style={bad ? { color: "var(--warn)" } : undefined}
       >
-        {failed ? <AlertIcon /> : syncing ? <RefreshIcon spinning /> : <CloudIcon />}
-        <span role="status" aria-live="polite" className="tabular">
-          {label}
-        </span>
-        {!failed && !syncing ? (
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" aria-hidden="true"></span>
+        {bad ? <AlertIcon /> : syncing ? <RefreshIcon spinning /> : <CloudIcon />}
+        {!bad && !syncing ? (
+          <span
+            className="absolute right-[0.7rem] top-[0.7rem] h-1.5 w-1.5 rounded-full bg-[var(--success)] sm:right-[0.5rem] sm:top-[0.5rem]"
+            aria-hidden="true"
+          ></span>
         ) : null}
       </button>
+      <span role="status" aria-live="polite" className="sr-only">
+        {syncing ? "Syncing" : failed ? "Sync error" : ""}
+      </span>
       {menu ? (
         <div
           role="menu"
-          className="absolute right-0 top-full z-20 mt-2 w-56 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-1.5 shadow-xl"
+          className="absolute right-0 top-full z-30 mt-1 w-[min(16rem,calc(100vw-2rem))] rounded-2xl border border-[var(--line)] bg-[var(--surface-elevated)] p-1.5 shadow-xl"
         >
-          <p className="break-all px-3 pb-1.5 pt-2 text-xs text-[var(--muted)]">
-            {failed && error
-              ? error
-              : (email || "Google account") + (lastSynced ? " · last synced " + timeText(lastSynced) : "")}
-          </p>
+          <p className="break-words px-3 pb-2 pt-2 text-xs leading-relaxed text-[var(--muted)]">{info}</p>
           <button
             type="button"
             role="menuitem"
             className={menuItem}
             onClick={() => {
               setMenu(false);
-              syncNow();
+              needsAuth ? connect() : syncNow();
             }}
           >
             <RefreshIcon />
-            {failed ? "Try again" : "Sync now"}
+            {needsAuth ? "Sign in again" : failed ? "Try again" : "Sync now"}
           </button>
           <button
             type="button"

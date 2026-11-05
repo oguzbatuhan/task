@@ -166,7 +166,7 @@ export function HistoryIcon() {
 
 export function RepeatIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 18 18" {...base}>
+    <svg width="16" height="16" viewBox="0 0 18 18" {...base}>
       <path d="M3 8V7a3 3 0 013-3h7.5M11.5 1.8L14 4l-2.5 2.2M15 10v1a3 3 0 01-3 3H4.5M6.5 16.2L4 14l2.5-2.2" {...stroke} strokeWidth="1.5" />
     </svg>
   );

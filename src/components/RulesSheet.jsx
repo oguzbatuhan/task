@@ -29,22 +29,19 @@ export function RulesSheet({ rules, today, onOpen, onClose }) {
   return (
     <HistorySheet
       title="Recurring tasks"
-      summary={rules.length + (rules.length === 1 ? " task" : " tasks")}
+      summary={<p className="text-[13px] text-[var(--muted)]">{rules.length + (rules.length === 1 ? " task" : " tasks")}</p>}
       onClose={onClose}
     >
-      <ul className="py-1">
+      <ul className="pb-2">
         {rules.map((r) => (
-          <li
-            key={r.id}
-            className="my-1.5 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--surface)] sm:bg-[var(--bg)]"
-          >
+          <li key={r.id} className="border-b border-[var(--line)] last:border-b-0">
             <button
               type="button"
               onClick={() => onOpen(r.id)}
-              className="flex min-h-14 w-full flex-col justify-center py-3 text-left hover:bg-[var(--hover)] px-2.5"
+              className="flex min-h-14 w-full flex-col justify-center px-1 py-3 text-left"
             >
               <span className="break-words text-[0.9375rem]">{r.title}</span>
-              <span className="tabular mt-0.5 text-xs font-medium text-[var(--accent)]">
+              <span className="tabular mt-0.5 text-xs text-[var(--muted-2)]">
                 {describeRule(r)}
                 {r.time ? " · " + r.time : ""}
                 {r.count
