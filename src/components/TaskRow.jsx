@@ -11,9 +11,11 @@ import {
 } from "./Icons.jsx";
 import { shortDate } from "../lib/dates.js";
 import { liveSubs } from "../lib/subs.js";
+import { useI18n } from "../i18n.jsx";
 
 // Subtasks: shown when the task is tapped open. Ticking is quick here; adding, renaming and removing happen in Edit.
 function Subtasks({ subs, onToggle }) {
+  const { t } = useI18n();
   return (
     <ul className="pb-1.5 pl-[2.375rem] pr-1">
       {subs.map((s) => (
@@ -23,7 +25,7 @@ function Subtasks({ subs, onToggle }) {
             role="checkbox"
             aria-checked={s.done}
             aria-label={
-              (s.done ? "Mark as not completed: " : "Mark as completed: ") +
+              (s.done ? t("common.markUndone") : t("common.markDone")) +
               s.title
             }
             onClick={() => onToggle(s.id)}
@@ -106,6 +108,7 @@ const reduceMotion = () =>
 
 // Heading of the per-day completed area
 export function DoneHead({ count, open, onToggle }) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
@@ -120,7 +123,7 @@ export function DoneHead({ count, open, onToggle }) {
       >
         <ChevronIcon dir="down" />
       </span>
-      Completed
+      {t("task.completed")}
       <span className="tabular">{count}</span>
     </button>
   );
@@ -140,6 +143,7 @@ function TaskRowBase({
   onToggleStar,
   dateLabel,
 }) {
+  const { t } = useI18n();
   // onOpen: old prop name, so an App.jsx that was not updated still opens the editor
   const edit = onEdit || onOpen;
   // A long press (drag to reorder) or a move (scroll) must not open the info area
@@ -262,7 +266,7 @@ function TaskRowBase({
           role="checkbox"
           aria-checked={checked}
           aria-label={
-            (checked ? "Mark as not completed: " : "Mark as completed: ") +
+            (checked ? t("common.markUndone") : t("common.markDone")) +
             task.title
           }
           onClick={handleToggle}
@@ -292,7 +296,8 @@ function TaskRowBase({
           }}
           aria-expanded={isOpen}
           aria-label={
-            "Details: " + task.title + (task.time ? ", at " + task.time : "")
+            t("task.details", { title: task.title }) +
+            (task.time ? t("task.at", { time: task.time }) : "")
           }
           className="flex min-w-0 flex-1 cursor-pointer flex-col justify-center self-stretch py-2"
         >
@@ -328,8 +333,8 @@ function TaskRowBase({
                 <span
                   className="inline-flex items-center"
                   role="img"
-                  aria-label="Has a note"
-                  title="Has a note"
+                  aria-label={t("task.hasNote")}
+                  title={t("task.hasNote")}
                 >
                   <NoteIcon />
                 </span>
@@ -337,7 +342,7 @@ function TaskRowBase({
               {subs.length ? (
                 <span
                   className="inline-flex items-center gap-1"
-                  title="Subtasks"
+                  title={t("common.subtasks")}
                 >
                   <ListIcon />
                   {subsDone}/{subs.length}
@@ -347,8 +352,8 @@ function TaskRowBase({
                 <span
                   className="inline-flex items-center"
                   role="img"
-                  aria-label="Recurring task"
-                  title="Recurring task"
+                  aria-label={t("task.recurring")}
+                  title={t("task.recurring")}
                 >
                   <RepeatIcon />
                 </span>
@@ -359,13 +364,9 @@ function TaskRowBase({
         {isOpen || task.starred ? (
           <button
             type="button"
-            aria-label={
-              task.starred
-                ? "Remove from starred tasks"
-                : "Add to starred tasks"
-            }
+            aria-label={task.starred ? t("task.unstar") : t("task.star")}
             aria-pressed={Boolean(task.starred)}
-            title={task.starred ? "Starred task" : "Star task"}
+            title={task.starred ? t("task.starredTitle") : t("task.starTitle")}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
@@ -403,11 +404,11 @@ function TaskRowBase({
           {mode === "confirm" ? (
             <div
               role="alertdialog"
-              aria-label={"Confirm deletion: " + task.title}
+              aria-label={t("task.confirmDeletion", { title: task.title })}
               className="flex w-full items-center gap-3"
             >
               <span className="min-w-0 flex-1 text-sm text-[var(--muted)]">
-                Delete?
+                {t("task.deleteQ")}
               </span>
               <button
                 ref={cancelRef}
@@ -415,14 +416,14 @@ function TaskRowBase({
                 onClick={() => setMode("open")}
                 className="link-btn"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
                 onClick={() => onRemove(task.id)}
                 className="link-btn text-[var(--warn)] hover:text-[var(--warn)]"
               >
-                Delete
+                {t("common.delete")}
               </button>
             </div>
           ) : (
@@ -439,7 +440,7 @@ function TaskRowBase({
                 }}
                 className="link-btn"
               >
-                Edit
+                {t("common.edit")}
               </button>
               <button
                 ref={delRef}
@@ -447,7 +448,7 @@ function TaskRowBase({
                 onClick={() => setMode("confirm")}
                 className="link-btn text-[var(--warn)] hover:text-[var(--warn)]"
               >
-                Delete
+                {t("common.delete")}
               </button>
             </>
           )}

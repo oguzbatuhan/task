@@ -9,11 +9,13 @@ import {
   renameSub,
   toggleSub,
 } from "../lib/subs.js";
+import { useI18n } from "../i18n.jsx";
 
 // Subtask list inside the Edit dialog: tick, rename, remove and add. `subs` is the task's full list (removed ones
 // stay inside it as tombstones so the removal syncs); only the live ones are shown.
 // Sits inside a form, so Enter adds a subtask instead of submitting.
 export default function SubtaskEditor({ subs, onChange }) {
+  const { t } = useI18n();
   const [text, setText] = useState("");
   const live = liveSubs(subs);
   const full = live.length >= MAX_SUBS;
@@ -25,7 +27,7 @@ export default function SubtaskEditor({ subs, onChange }) {
   return (
     <div className="rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] px-3.5 py-2">
       <p className="mb-0.5 flex items-center text-xs text-[var(--muted)]">
-        <span>Subtasks</span>
+        <span>{t("common.subtasks")}</span>
         {live.length ? (
           <span className="tabular ml-auto">
             {live.filter((s) => s.done).length}/{live.length}
@@ -41,7 +43,7 @@ export default function SubtaskEditor({ subs, onChange }) {
                 role="checkbox"
                 aria-checked={s.done}
                 aria-label={
-                  (s.done ? "Mark as not completed: " : "Mark as completed: ") +
+                  (s.done ? t("common.markUndone") : t("common.markDone")) +
                   s.title
                 }
                 onClick={() => onChange(toggleSub(subs, s.id))}
@@ -61,7 +63,7 @@ export default function SubtaskEditor({ subs, onChange }) {
                 }
                 onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
                 maxLength={SUB_TITLE_MAX}
-                aria-label="Subtask name"
+                aria-label={t("subs.name")}
                 className={
                   "min-w-0 flex-1 bg-transparent py-1 text-sm outline-none " +
                   (s.done
@@ -71,7 +73,7 @@ export default function SubtaskEditor({ subs, onChange }) {
               />
               <button
                 type="button"
-                aria-label={"Remove subtask: " + s.title}
+                aria-label={t("subs.remove", { title: s.title })}
                 onClick={() => onChange(removeSub(subs, s.id))}
                 className="icon-btn -mr-2 !h-8 !w-8"
               >
@@ -99,8 +101,8 @@ export default function SubtaskEditor({ subs, onChange }) {
           }}
           onBlur={add}
           disabled={full}
-          placeholder={full ? "Subtask limit reached" : "Add subtask"}
-          aria-label="Add subtask"
+          placeholder={full ? t("subs.limit") : t("subs.add")}
+          aria-label={t("subs.add")}
           maxLength={SUB_TITLE_MAX}
           enterKeyHint="done"
           className="h-10 min-w-0 flex-1 bg-transparent text-sm text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"

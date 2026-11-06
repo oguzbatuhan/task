@@ -1,3 +1,5 @@
+import { getLocale } from "./i18n.js";
+
 // Helpers for the history drawer: past days are listed newest first and grouped by month.
 
 // "2026-10" for any ISO day (YYYY-MM-DD)
@@ -6,7 +8,7 @@ export const monthKey = (iso) => iso.slice(0, 7);
 // "October" for a month of the current year, "October 2025" for any other year
 export function monthLabel(key, today) {
   const [y, m] = key.split("-").map(Number);
-  const name = new Date(y, m - 1, 1, 12).toLocaleDateString("en-US", { month: "long" });
+  const name = new Date(y, m - 1, 1, 12).toLocaleDateString(getLocale(), { month: "long" });
   return y === Number(String(today).slice(0, 4)) ? name : name + " " + y;
 }
 

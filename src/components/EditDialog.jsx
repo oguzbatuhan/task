@@ -5,6 +5,7 @@ import SubDraft from "./SubDraft.jsx";
 import SubtaskEditor from "./SubtaskEditor.jsx";
 import { finalizeSubs } from "../lib/subs.js";
 import { shortDate } from "../lib/dates.js";
+import { useI18n } from "../i18n.jsx";
 
 const field =
   "relative flex h-12 min-w-0 items-center gap-2 rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] px-3.5 text-base transition-colors focus-within:border-[var(--accent)] sm:h-11 sm:text-[0.9375rem]";
@@ -21,6 +22,7 @@ export default function EditDialog({
   onDelete,
   onClose,
 }) {
+  const { t } = useI18n();
   const isRule = mode === "rule";
   const [days, setDays] = useState(task.days || []);
   const [count, setCount] = useState(task.count || 0);
@@ -121,18 +123,18 @@ export default function EditDialog({
         onSubmit={submit}
         role="dialog"
         aria-modal="true"
-        aria-label={isRule ? "Edit recurring task" : "Edit task"}
+        aria-label={isRule ? t("edit.rule") : t("edit.task")}
         className="dialog-sheet max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-[1.25rem] border border-[var(--line)] bg-[var(--surface-elevated)] px-5 pt-5 shadow-2xl sm:rounded-[1.25rem]"
         style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-medium">
-            {isRule ? "Edit recurring task" : "Edit task"}
+            {isRule ? t("edit.rule") : t("edit.task")}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("common.close")}
             className="icon-btn -mr-2"
           >
             <CloseIcon />
@@ -147,8 +149,8 @@ export default function EditDialog({
             onChange={(e) => setTitle(e.target.value)}
             maxLength={120}
             autoComplete="off"
-            aria-label="Task name"
-            placeholder="Task name"
+            aria-label={t("edit.name")}
+            placeholder={t("edit.name")}
             className={
               field +
               " w-full text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"
@@ -160,8 +162,8 @@ export default function EditDialog({
             onChange={(e) => setNote(e.target.value)}
             maxLength={1000}
             rows={3}
-            aria-label="Description"
-            placeholder="Description (optional)"
+            aria-label={t("common.description")}
+            placeholder={t("common.descriptionOptional")}
             className={
               field +
               " h-auto w-full resize-none py-2.5 text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"
@@ -191,7 +193,7 @@ export default function EditDialog({
                 <input
                   type="date"
                   value={date}
-                  aria-label="Date"
+                  aria-label={t("edit.date")}
                   onChange={(e) => e.target.value && setDate(e.target.value)}
                   onClick={(e) => {
                     try {
@@ -212,12 +214,12 @@ export default function EditDialog({
                   "tabular flex-1 " + (time ? "" : "text-[var(--muted)]")
                 }
               >
-                {time || "No time"}
+                {time || t("edit.noTime")}
               </span>
               <input
                 type="time"
                 value={time}
-                aria-label="Time"
+                aria-label={t("edit.time")}
                 onChange={(e) => setTime(e.target.value)}
                 onClick={(e) => {
                   try {
@@ -233,7 +235,7 @@ export default function EditDialog({
                     e.stopPropagation();
                     setTime("");
                   }}
-                  aria-label="Remove time"
+                  aria-label={t("common.removeTime")}
                   className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]"
                 >
                   <CloseIcon />
@@ -253,8 +255,7 @@ export default function EditDialog({
                 }}
               />
               <p className="mt-2 text-xs text-[var(--muted)]">
-                Changes apply from today on, to unfinished occurrences. Past and
-                completed tasks stay as they are.
+                {t("edit.ruleNote")}
               </p>
             </div>
           ) : ruleInfo ? (
@@ -270,7 +271,7 @@ export default function EditDialog({
                 onClick={onEditRule}
                 className="btn btn-ghost btn-sm"
               >
-                Edit repeat
+                {t("edit.editRepeat")}
               </button>
             </div>
           ) : null}
@@ -279,13 +280,11 @@ export default function EditDialog({
         {confirming ? (
           <div
             role="alertdialog"
-            aria-label="Confirm deletion"
+            aria-label={t("edit.confirmDeletion")}
             className="mt-6 flex flex-wrap items-center gap-2"
           >
             <p className="min-w-0 flex-1 basis-full text-sm sm:basis-0">
-              {isRule
-                ? "Delete this recurring task? Unfinished occurrences from today on will be deleted too."
-                : "Delete this task?"}
+              {isRule ? t("edit.deleteRule") : t("edit.deleteTask")}
             </p>
             <button
               ref={cancelRef}
@@ -293,14 +292,14 @@ export default function EditDialog({
               onClick={() => setConfirming(false)}
               className="btn btn-ghost btn-sm"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               type="button"
               onClick={() => onDelete(task.id)}
               className="btn btn-warn btn-sm"
             >
-              Yes, delete
+              {t("edit.yesDelete")}
             </button>
           </div>
         ) : (
@@ -310,7 +309,7 @@ export default function EditDialog({
               onClick={() => setConfirming(true)}
               className="btn btn-sm min-w-0 border-[var(--line-strong)] text-[var(--warn)] hover:bg-[var(--hover)]"
             >
-              Delete
+              {t("common.delete")}
             </button>
             <span className="flex-1" aria-hidden="true"></span>
             <button
@@ -318,7 +317,7 @@ export default function EditDialog({
               onClick={onClose}
               className="btn btn-ghost min-w-0"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -328,7 +327,7 @@ export default function EditDialog({
                 (text && (!isRule || hasRepeat) ? "" : "opacity-40")
               }
             >
-              Save
+              {t("common.save")}
             </button>
           </div>
         )}

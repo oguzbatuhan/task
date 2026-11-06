@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AuthError,
   ConflictError,
+  TextError,
   cloudConfigured,
   downloadData,
   onAuthChange,
@@ -35,13 +36,16 @@ const writeFlag = (on) => {
   } catch {}
 };
 
+// What the menu shows for a failure: { key, params } (translated when shown) or { text } (a message from the server)
+const errorInfo = (e) => (e instanceof TextError ? { key: e.key, params: e.params } : e?.message ? { text: e.message } : { key: "err.unknown" });
+
 // status: "off" | "syncing" | "synced" | "needs-auth" | "error"
 export function useCloudSync(tasks, setTasks, rules, setRules) {
   const initiallyConnected = cloudConfigured && readFlag();
   const [connected, setConnected] = useState(initiallyConnected);
   const [status, setStatus] = useState(initiallyConnected ? "syncing" : "off");
   const [lastSynced, setLastSynced] = useState(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [email, setEmail] = useState("");
 
   const tasksRef = useRef(tasks);
@@ -94,16 +98,14 @@ export function useCloudSync(tasks, setTasks, rules, setRules) {
       }
       setStatus("synced");
       setLastSynced(Date.now());
-      setError("");
+      setError(null);
     } catch (e) {
       if (e instanceof AuthError) {
         setStatus("needs-auth");
       } else {
         setStatus("error");
         const offline = !navigator.onLine || e instanceof TypeError;
-        setError(
-          offline ? "No internet connection, will retry when it returns." : e.message || "Unknown error"
-        );
+        setError(offline ? { key: "err.offline" } : errorInfo(e));
       }
     } finally {
       running.current = false;
@@ -186,7 +188,7 @@ export function useCloudSync(tasks, setTasks, rules, setRules) {
 
   // Redirects to Google. The flag is written first so the app syncs automatically when it comes back.
   const connect = useCallback(async () => {
-    setError("");
+    setError(null);
     setStatus("syncing");
     writeFlag(true);
     try {
@@ -194,7 +196,7 @@ export function useCloudSync(tasks, setTasks, rules, setRules) {
     } catch (e) {
       writeFlag(connectedRef.current);
       setStatus(connectedRef.current ? "needs-auth" : "off");
-      setError(e.message || "Could not start sign-in");
+      setError(e instanceof TextError || e?.message ? errorInfo(e) : { key: "err.signInStart" });
     }
   }, []);
 
@@ -203,7 +205,7 @@ export function useCloudSync(tasks, setTasks, rules, setRules) {
     writeFlag(false);
     setConnected(false);
     setStatus("off");
-    setError("");
+    setError(null);
     setEmail("");
     await signOut();
   }, []);

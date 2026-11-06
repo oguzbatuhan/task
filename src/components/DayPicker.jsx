@@ -1,5 +1,6 @@
-import { DAY_SHORT, WEEK, cleanDays, describeDays } from "../lib/repeat.js";
+import { WEEK, cleanDays, dayShort, describeDays } from "../lib/repeat.js";
 import { RepeatIcon } from "./Icons.jsx";
+import { useI18n } from "../i18n.jsx";
 
 const seg = "flex h-10 min-w-0 flex-1 items-center justify-center rounded-lg px-2 text-[0.8125rem] font-medium transition-colors ";
 const step =
@@ -8,13 +9,16 @@ const step =
 // Repeat options: mark the weekdays yourself, then choose whether it repeats forever or ends after a number of times.
 // onChange(days, count): count is 0 for "forever".
 export default function DayPicker({ days, count = 0, onChange }) {
+  const { t } = useI18n();
   const set = cleanDays(days);
   const toggle = (d) => onChange(cleanDays(set.includes(d) ? set.filter((x) => x !== d) : [...set, d]), count);
-  const summary = set.length ? describeDays(set) + (count ? " · " + count + " times, then ends" : " · forever") : "";
+  const summary = set.length
+    ? describeDays(set) + (count ? t("picker.summaryEnds", { n: count }) : t("picker.summaryForever"))
+    : "";
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-1" role="group" aria-label="Repeat days">
+      <div className="flex items-center justify-between gap-1" role="group" aria-label={t("picker.days")}>
         {WEEK.map((d) => {
           const picked = set.includes(d);
           return (
@@ -22,7 +26,7 @@ export default function DayPicker({ days, count = 0, onChange }) {
               key={d}
               type="button"
               aria-pressed={picked}
-              aria-label={DAY_SHORT[d]}
+              aria-label={dayShort(d)}
               onClick={() => toggle(d)}
               className={
                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-[0.75rem] font-medium transition-all active:scale-95 " +
@@ -31,20 +35,20 @@ export default function DayPicker({ days, count = 0, onChange }) {
                   : "border-[var(--line-strong)] text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]")
               }
             >
-              {DAY_SHORT[d]}
+              {dayShort(d)}
             </button>
           );
         })}
       </div>
 
-      <div className="flex gap-1 rounded-xl border border-[var(--line)] p-1" role="group" aria-label="Ends">
+      <div className="flex gap-1 rounded-xl border border-[var(--line)] p-1" role="group" aria-label={t("picker.ends")}>
         <button
           type="button"
           aria-pressed={!count}
           onClick={() => onChange(set, 0)}
           className={seg + (!count ? "bg-[var(--accent-soft)] text-[var(--fg)]" : "text-[var(--muted)] hover:text-[var(--fg)]")}
         >
-          Forever
+          {t("picker.forever")}
         </button>
         <button
           type="button"
@@ -52,13 +56,13 @@ export default function DayPicker({ days, count = 0, onChange }) {
           onClick={() => onChange(set, count || 4)}
           className={seg + (count ? "bg-[var(--accent-soft)] text-[var(--fg)]" : "text-[var(--muted)] hover:text-[var(--fg)]")}
         >
-          A set number
+          {t("picker.setNumber")}
         </button>
       </div>
 
       {count ? (
         <div className="flex items-center justify-center gap-3">
-          <button type="button" aria-label="Decrease" disabled={count <= 1} onClick={() => onChange(set, count - 1)} className={step}>
+          <button type="button" aria-label={t("picker.decrease")} disabled={count <= 1} onClick={() => onChange(set, count - 1)} className={step}>
             −
           </button>
           <label className="flex items-baseline gap-1.5 text-[0.8125rem] text-[var(--muted)]">
@@ -68,13 +72,13 @@ export default function DayPicker({ days, count = 0, onChange }) {
               min={1}
               max={999}
               value={count}
-              aria-label="Number of repeats"
+              aria-label={t("picker.numberOfRepeats")}
               onChange={(e) => onChange(set, Math.min(999, Math.max(1, Math.floor(Number(e.target.value)) || 1)))}
               className="tabular w-14 bg-transparent text-center text-xl font-medium text-[var(--fg)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
             />
-            times
+            {t("picker.times")}
           </label>
-          <button type="button" aria-label="Increase" disabled={count >= 999} onClick={() => onChange(set, count + 1)} className={step}>
+          <button type="button" aria-label={t("picker.increase")} disabled={count >= 999} onClick={() => onChange(set, count + 1)} className={step}>
             +
           </button>
         </div>
@@ -89,7 +93,7 @@ export default function DayPicker({ days, count = 0, onChange }) {
         <span className="shrink-0 text-[var(--muted)]">
           <RepeatIcon />
         </span>
-        <span className="min-w-0 truncate">{set.length ? summary : "Pick at least one day"}</span>
+        <span className="min-w-0 truncate">{set.length ? summary : t("picker.pickOne")}</span>
       </div>
     </div>
   );

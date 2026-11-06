@@ -10,6 +10,7 @@
 import { fromIso, shiftIso } from "./dates.js";
 import { cleanNote, isValidTime, newTask, patchTask, uid } from "./tasks.js";
 import { cleanTitles, subsFromTitles } from "./subs.js";
+import { t, tp } from "./i18n.js";
 
 export const RULES_KEY = "task-rules-v1";
 // How many days (today included) recurring tasks are created and shown for: today and tomorrow
@@ -17,7 +18,8 @@ export const HORIZON_DAYS = 2;
 
 // Monday first, as in most of Europe. Values are JS weekdays (0 = Sunday ... 6 = Saturday).
 export const WEEK = [1, 2, 3, 4, 5, 6, 0];
-export const DAY_SHORT = { 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 0: "Sun" };
+// Short weekday name in the current interface language
+export const dayShort = (d) => t("day." + d);
 
 export const cleanDays = (days) =>
   WEEK.filter((d) => Array.isArray(days) && days.includes(d));
@@ -25,11 +27,11 @@ export const cleanDays = (days) =>
 export function describeDays(days) {
   const d = cleanDays(days);
   const key = d.join(",");
-  if (d.length === 7) return "Every day";
-  if (key === "1,2,3,4,5") return "Every weekday";
-  if (key === "6,0") return "Weekends";
-  if (d.length === 1) return "Every " + DAY_SHORT[d[0]];
-  return d.map((x) => DAY_SHORT[x]).join(", ");
+  if (d.length === 7) return t("repeat.everyDay");
+  if (key === "1,2,3,4,5") return t("repeat.everyWeekday");
+  if (key === "6,0") return t("repeat.weekends");
+  if (d.length === 1) return t("repeat.every", { day: dayShort(d[0]) });
+  return d.map(dayShort).join(", ");
 }
 
 export const weekdayOf = (iso) => fromIso(iso).getDay();
@@ -77,7 +79,7 @@ export const isEnded = (rule, today) => {
 };
 
 // "Mon, Wed" / "Mon, Wed · 10 times"
-export const describeRule = (rule) => describeDays(rule.days) + (rule.count ? " · " + rule.count + " times" : "");
+export const describeRule = (rule) => describeDays(rule.days) + (rule.count ? " · " + tp("repeat.times", rule.count) : "");
 
 // Subtask titles of a rule: plain strings, trimmed, at most 30
 export const cleanSubs = cleanTitles;

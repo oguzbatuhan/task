@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronIcon, CloseIcon, HistoryIcon } from "./Icons.jsx";
+import { useI18n } from "../i18n.jsx";
 
 const FOCUSABLE =
   'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 // Quiet icon button in the page header
 export function HistoryButton({ count, onClick }) {
+  const { t, tp } = useI18n();
   return (
     <button
       type="button"
       onClick={onClick}
       aria-haspopup="dialog"
-      aria-label={"History (" + count + " days)"}
-      title="History"
+      aria-label={tp("history.aria", count)}
+      title={t("history.title")}
       className="icon-btn"
     >
       <HistoryIcon />
@@ -21,11 +23,13 @@ export function HistoryButton({ count, onClick }) {
 }
 
 export function HistorySheet({
-  title = "History",
+  title,
   summary,
   onClose,
   children,
 }) {
+  const { t } = useI18n();
+  title = title ?? t("history.title");
   const panelRef = useRef(null);
   const closeRef = useRef(null);
   const closeFn = useRef(onClose);
@@ -154,7 +158,7 @@ export function HistorySheet({
               ref={closeRef}
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t("common.close")}
               className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--muted)] active:bg-[var(--hover)]"
               onPointerDown={(e) => e.stopPropagation()}
             >
@@ -171,7 +175,7 @@ export function HistorySheet({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("common.close")}
             className="-mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--fg)]"
           >
             <CloseIcon />
@@ -198,9 +202,10 @@ export function HistorySheet({
 
 // One quiet line instead of a stats card
 export function HistoryStats({ days, done, total }) {
+  const { t, tp } = useI18n();
   return (
     <p className="tabular text-[13px] text-[var(--muted)]">
-      {done} of {total} tasks done · {days} {days === 1 ? "day" : "days"}
+      {t("history.stats", { done, total, days, dayWord: tp("history.day", days) })}
     </p>
   );
 }
@@ -263,7 +268,8 @@ export function HistoryDay({
 }
 
 export function HistoryEmpty() {
-  return <p className="py-20 text-center text-sm text-[var(--muted)]">No past days yet.</p>;
+  const { t } = useI18n();
+  return <p className="py-20 text-center text-sm text-[var(--muted)]">{t("history.empty")}</p>;
 }
 
 // Infinite scroll sentinel for older history days

@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertIcon, CloudIcon, RefreshIcon, UnlinkIcon } from "./Icons.jsx";
+import { useI18n } from "../i18n.jsx";
 
 const menuItem =
   "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm transition-colors hover:bg-[var(--hover)] active:bg-[var(--hover)]";
 
-function timeText(ms) {
-  return new Date(ms).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+function timeText(ms, locale) {
+  return new Date(ms).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 
 // Cloud backup: one quiet icon button in the header, same size as its neighbours.
 // Status is a tiny dot on the icon; everything else lives in the menu.
 export default function SyncBar({ sync }) {
+  const { t, locale } = useI18n();
   const { configured, connected, status, lastSynced, error, email, connect, disconnect, syncNow } = sync;
   const [menu, setMenu] = useState(false);
   const box = useRef(null);
@@ -35,8 +37,8 @@ export default function SyncBar({ sync }) {
       <button
         type="button"
         onClick={connect}
-        aria-label="Back up with Google"
-        title="Back up with Google"
+        aria-label={t("sync.backUp")}
+        title={t("sync.backUp")}
         className="icon-btn"
       >
         <CloudIcon />
@@ -49,11 +51,14 @@ export default function SyncBar({ sync }) {
   const failed = status === "error";
   const bad = needsAuth || failed;
 
+  // An error is kept as a key (translated now) or as the server's own message
+  const errorText = error ? (error.key ? t(error.key, error.params) : error.text) : "";
   const info = needsAuth
-    ? "Session expired. Sign in again to keep backing up."
-    : failed && error
-      ? error
-      : (email || "Google account") + (lastSynced ? " · synced " + timeText(lastSynced) : "");
+    ? t("sync.expired")
+    : failed && errorText
+      ? errorText
+      : (email || t("sync.googleAccount")) +
+        (lastSynced ? t("sync.syncedAt", { time: timeText(lastSynced, locale) }) : "");
 
   return (
     <div className="relative" ref={box}>
@@ -61,7 +66,15 @@ export default function SyncBar({ sync }) {
         type="button"
         aria-haspopup="menu"
         aria-expanded={menu}
-        aria-label={needsAuth ? "Cloud backup: sign in again" : failed ? "Cloud backup: error" : syncing ? "Syncing" : "Cloud backup"}
+        aria-label={
+          needsAuth
+            ? t("sync.ariaNeedsAuth")
+            : failed
+              ? t("sync.ariaError")
+              : syncing
+                ? t("sync.ariaSyncing")
+                : t("sync.ariaDefault")
+        }
         onClick={() => setMenu((v) => !v)}
         className="icon-btn relative"
         style={bad ? { color: "var(--warn)" } : undefined}
@@ -75,7 +88,7 @@ export default function SyncBar({ sync }) {
         ) : null}
       </button>
       <span role="status" aria-live="polite" className="sr-only">
-        {syncing ? "Syncing" : failed ? "Sync error" : ""}
+        {syncing ? t("sync.ariaSyncing") : failed ? t("sync.errorStatus") : ""}
       </span>
       {menu ? (
         <div
@@ -93,7 +106,7 @@ export default function SyncBar({ sync }) {
             }}
           >
             <RefreshIcon />
-            {needsAuth ? "Sign in again" : failed ? "Try again" : "Sync now"}
+            {needsAuth ? t("sync.signInAgain") : failed ? t("sync.tryAgain") : t("sync.syncNow")}
           </button>
           <button
             type="button"
@@ -105,7 +118,7 @@ export default function SyncBar({ sync }) {
             }}
           >
             <UnlinkIcon />
-            Disconnect
+            {t("sync.disconnect")}
           </button>
         </div>
       ) : null}

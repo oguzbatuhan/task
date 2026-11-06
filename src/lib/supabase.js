@@ -10,6 +10,16 @@ export const APP_ID = "task";
 
 export const cloudConfigured = Boolean(URL && KEY);
 
+// An error whose text is translated when it is shown (not when it is thrown), so switching the language also
+// switches an error that is already on screen. `key` is a text key of lib/i18n.js.
+export class TextError extends Error {
+  constructor(key, params) {
+    super(key);
+    this.key = key;
+    this.params = params;
+  }
+}
+
 export class AuthError extends Error {
   constructor(message) {
     super(message);
@@ -87,7 +97,7 @@ export async function requireUser() {
   if (error) {
     // A network error does not clear the session; only count this attempt as failed
     if (/retryable|fetch/i.test(error.name + " " + error.message)) {
-      throw new Error("Could not reach the server. Will retry when the connection returns.");
+      throw new TextError("err.unreachable");
     }
     throw new AuthError(error.message);
   }
@@ -100,12 +110,12 @@ function toError(error) {
     return new AuthError("Session expired");
   }
   if (error.code === "42P01" || error.code === "PGRST205") {
-    return new Error("Table '" + TABLE + "' does not exist in Supabase. Run supabase/setup.sql in the SQL Editor.");
+    return new TextError("err.noTable", { table: TABLE });
   }
   if (error.code === "42501") {
-    return new Error("Access to the table was denied (RLS). Make sure you have run supabase/setup.sql.");
+    return new TextError("err.rls");
   }
-  return new Error(error.message || "Supabase request failed");
+  return error.message ? new Error(error.message) : new TextError("err.requestFailed");
 }
 
 // Downloads this app's data. Returns { data, version } where version identifies this exact copy of the row

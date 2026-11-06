@@ -14,6 +14,7 @@ import SubDraft from "./SubDraft.jsx";
 import { describeDays } from "../lib/repeat.js";
 import { relativeName, shiftIso, shortDate } from "../lib/dates.js";
 import { parseQuick } from "../lib/quickadd.js";
+import { useI18n } from "../i18n.jsx";
 
 // Minimal tool buttons: icon only when unset, icon + value when set
 const tool =
@@ -41,6 +42,7 @@ const PRESETS = ["09:00", "12:00", "14:00", "18:00", "20:00", "21:30"];
 
 // Mobile-friendly time sheet (avoids broken native time pickers on phones)
 function TimeSheet({ value, onChange, onClose }) {
+  const { t } = useI18n();
   const [h, setH] = useState((value || "09:00").slice(0, 2));
   const [m, setM] = useState((value || "09:00").slice(3, 5) || "00");
   const openedAt = useRef(Date.now());
@@ -69,16 +71,16 @@ function TimeSheet({ value, onChange, onClose }) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Pick a time"
+        aria-label={t("time.pick")}
         className="w-full max-w-md rounded-t-[1.25rem] border border-[var(--line)] bg-[var(--surface-elevated)] px-5 pt-4 shadow-2xl sm:rounded-[1.25rem]"
         style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-medium">Time</h3>
+          <h3 className="text-sm font-medium">{t("time.title")}</h3>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("common.close")}
             className="icon-btn"
           >
             <CloseIcon />
@@ -105,7 +107,7 @@ function TimeSheet({ value, onChange, onClose }) {
 
         <div className="mb-4 grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-            Hour
+            {t("time.hour")}
             <div className="relative">
               <select
                 value={h}
@@ -128,7 +130,7 @@ function TimeSheet({ value, onChange, onClose }) {
             </div>
           </label>
           <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
-            Minute
+            {t("time.minute")}
             <div className="relative">
               <select
                 value={MINS.includes(m) ? m : "00"}
@@ -162,7 +164,7 @@ function TimeSheet({ value, onChange, onClose }) {
               }}
               className="btn btn-ghost flex-1"
             >
-              Remove time
+              {t("common.removeTime")}
             </button>
           ) : null}
           <button
@@ -170,7 +172,7 @@ function TimeSheet({ value, onChange, onClose }) {
             onClick={() => apply(h, MINS.includes(m) ? m : "00")}
             className="btn btn-solid flex-1"
           >
-            OK
+            {t("common.ok")}
           </button>
         </div>
       </div>
@@ -200,6 +202,7 @@ function useKeyboardInset() {
 }
 
 export default function Composer({ today, onAdd }) {
+  const { t } = useI18n();
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(today);
   const [time, setTime] = useState("");
@@ -322,9 +325,8 @@ export default function Composer({ today, onAdd }) {
                 {repeating ? (
                   <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">
                     {(effDate > tomorrow
-                      ? "Starts on " + shortDate(effDate) + ". "
-                      : "") +
-                      "Only shown for today and tomorrow; later days are added when they come up."}
+                      ? t("composer.startsOn", { date: shortDate(effDate) })
+                      : "") + t("composer.onlyTwoDays")}
                   </p>
                 ) : null}
               </div>
@@ -336,8 +338,8 @@ export default function Composer({ today, onAdd }) {
                   onChange={(e) => setNote(e.target.value)}
                   maxLength={1000}
                   rows={2}
-                  aria-label="Description"
-                  placeholder="Description (optional)"
+                  aria-label={t("common.description")}
+                  placeholder={t("common.descriptionOptional")}
                   className="w-full resize-none rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-base text-[var(--fg)] outline-none transition-colors placeholder:text-[var(--muted)] focus:border-[var(--line-strong)] sm:text-[0.9375rem]"
                 />
                 <div className="mt-2.5">
@@ -372,13 +374,13 @@ export default function Composer({ today, onAdd }) {
             maxLength={120}
             autoComplete="off"
             enterKeyHint="done"
-            aria-label="New task"
-            placeholder="Add a task…"
+            aria-label={t("composer.newTask")}
+            placeholder={t("composer.placeholder")}
             className="h-11 min-w-0 flex-1 bg-transparent text-base text-[var(--fg)] outline-none placeholder:text-[var(--muted)]"
           />
           <button
             type="submit"
-            aria-label="Add task"
+            aria-label={t("composer.add")}
             className={
               "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)] transition-all active:scale-95 sm:h-10 sm:w-10 " +
               (empty ? "opacity-0 pointer-events-none scale-90" : "opacity-100")
@@ -399,7 +401,7 @@ export default function Composer({ today, onAdd }) {
                   onClick={() => setDate(today)}
                   className={dayBtn(effDate === today)}
                 >
-                  Today
+                  {t("common.today")}
                 </button>
                 <button
                   type="button"
@@ -407,12 +409,12 @@ export default function Composer({ today, onAdd }) {
                   onClick={() => setDate(tomorrow)}
                   className={dayBtn(effDate === tomorrow)}
                 >
-                  Tomorrow
+                  {t("common.tomorrow")}
                 </button>
               </div>
               <button
                 type="button"
-                aria-label="Pick a date"
+                aria-label={t("composer.pickDate")}
                 onClick={() => {
                   const el = dateRef.current;
                   if (!el) return;
@@ -444,7 +446,7 @@ export default function Composer({ today, onAdd }) {
               />
               <button
                 type="button"
-                aria-label="Set a time"
+                aria-label={t("composer.setTime")}
                 onClick={() => setTimeOpen(true)}
                 className={tool + (effTime ? toolOn : toolOff)}
               >
@@ -455,7 +457,7 @@ export default function Composer({ today, onAdd }) {
               </button>
               <button
                 type="button"
-                aria-label="Repeat"
+                aria-label={t("composer.repeat")}
                 aria-expanded={repeatOpen}
                 onClick={() => setRepeatOpen((o) => !o)}
                 className={
@@ -476,7 +478,7 @@ export default function Composer({ today, onAdd }) {
               </button>
               <button
                 type="button"
-                aria-label="Details"
+                aria-label={t("composer.details")}
                 aria-expanded={detailsOpen}
                 onClick={() => setDetailsOpen((o) => !o)}
                 className={
@@ -502,7 +504,7 @@ export default function Composer({ today, onAdd }) {
                 onClick={clearExtras}
                 className="shrink-0 rounded-full px-2.5 py-1.5 text-xs text-[var(--muted)] hover:text-[var(--fg)]"
               >
-                Reset
+                {t("composer.reset")}
               </button>
             ) : null}
           </div>

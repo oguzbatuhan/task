@@ -1,7 +1,9 @@
 import { useEffect } from "react";
+import { useI18n } from "../i18n.jsx";
 
 // Small message pill at the bottom of the screen with an optional "Undo" action. Closes itself.
 export default function Toast({ toast, onClose }) {
+  const { t } = useI18n();
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(onClose, 5000);
@@ -29,7 +31,7 @@ export default function Toast({ toast, onClose }) {
             }}
             className="h-8 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--bg)_15%,transparent)] px-4 text-[0.8125rem] font-medium hover:bg-[color-mix(in_srgb,var(--bg)_28%,transparent)]"
           >
-            Undo
+            {t("app.undo")}
           </button>
         ) : (
           <span className="w-3" aria-hidden="true"></span>

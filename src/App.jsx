@@ -6,6 +6,8 @@ import SyncBar from "./components/SyncBar.jsx";
 import EditDialog from "./components/EditDialog.jsx";
 import SortableList from "./components/SortableList.jsx";
 import Toast from "./components/Toast.jsx";
+import LangSwitch from "./components/LangSwitch.jsx";
+import { useI18n } from "./i18n.jsx";
 import { useCloudSync } from "./hooks/useCloudSync.js";
 import { usePersist } from "./hooks/usePersist.js";
 import { groupLabel, relativeName, shiftIso, shortDate, toIso } from "./lib/dates.js";
@@ -16,10 +18,11 @@ import { RULES_KEY, cleanSubs, describeRule, loadRules, isBeyondWindow, material
 import { RulesButton, RulesSheet } from "./components/RulesSheet.jsx";
 
 const HISTORY_PAGE_DAYS = 30;
-// One shared collator: much cheaper than localeCompare on every comparison
-const collator = new Intl.Collator("en");
 
 export default function App() {
+  const { lang, locale, t, tp } = useI18n();
+  // One shared collator per language: much cheaper than localeCompare on every comparison (and sorts "ç ğ ı ö ş ü" right)
+  const collator = useMemo(() => new Intl.Collator(locale), [locale]);
   const [today, setToday] = useState(() => toIso(new Date()));
   // History drawer: closed by default; which days are open and how many days are loaded
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -70,7 +73,7 @@ export default function App() {
       );
     }
     return map;
-  }, [tasks, today]);
+  }, [tasks, today, collator]);
 
   const dates = useMemo(() => [...byDate.keys()].sort(), [byDate]);
   // Unfinished tasks from earlier days: they used to hide in the history, now they stay in sight.
@@ -141,7 +144,7 @@ export default function App() {
 
   const pastMonths = useMemo(
     () => (historyOpen ? groupByMonth(filteredPast.map((date) => ({ date })), today) : []),
-    [historyOpen, filteredPast, today],
+    [historyOpen, filteredPast, today, lang],
   );
 
   const todayItems = byDate.get(today) || [];
@@ -160,7 +163,7 @@ export default function App() {
       const later = first > shiftIso(today, 1);
       setToast({
         key: Date.now(),
-        message: "Recurring task added" + (later ? " · will appear on " + shortDate(first) : ""),
+        message: later ? t("toast.recurringLater", { date: shortDate(first) }) : t("toast.recurringAdded"),
       });
       return;
     }
@@ -195,9 +198,9 @@ export default function App() {
   const remove = useCallback(
     (id) => {
       setDeleted(id, true);
-      setToast({ key: Date.now(), message: "Task deleted", undo: () => setDeleted(id, false) });
+      setToast({ key: Date.now(), message: t("toast.deleted"), undo: () => setDeleted(id, false) });
     },
-    [setDeleted],
+    [setDeleted, t],
   );
 
   const moveOverdueToToday = () => {
@@ -210,7 +213,7 @@ export default function App() {
     });
     setToast({
       key: Date.now(),
-      message: ids.size + (ids.size === 1 ? " task" : " tasks") + " moved to today",
+      message: tp("toast.moved", ids.size),
       undo: () =>
         setTasks((prev) =>
           prev.map((t) => {
@@ -268,7 +271,7 @@ export default function App() {
     setRules((prev) => prev.map((r) => (r.id === id ? next : r)));
     setTasks((prev) => syncInstances(prev, next, today));
     setEditingRuleId(null);
-    setToast({ key: Date.now(), message: "Recurring task deleted" });
+    setToast({ key: Date.now(), message: t("toast.ruleDeleted") });
   };
 
   const save = (id, { title, date, time, note, subs }) => {
@@ -327,9 +330,9 @@ export default function App() {
           />
         )}
         {all.length === 0 ? (
-          <p className="py-3 text-sm text-[var(--muted)]">No tasks on this day.</p>
+          <p className="py-3 text-sm text-[var(--muted)]">{t("app.noTasksDay")}</p>
         ) : items.length === 0 ? (
-          <p className="py-3 text-sm text-[var(--muted)]">All tasks completed ✨</p>
+          <p className="py-3 text-sm text-[var(--muted)]">{t("app.allCompleted")}</p>
         ) : (
           <div>
             <SortableList
@@ -391,25 +394,26 @@ export default function App() {
         <div className="flex items-center justify-between gap-2">
           <p className="min-w-0 flex-1 truncate text-[13px] text-[var(--muted)]">{todayLabel}</p>
           <div className="-mr-2.5 flex shrink-0 items-center sm:-mr-2">
+            <LangSwitch />
             {liveRules.length > 0 ? <RulesButton count={liveRules.length} onClick={() => setRulesOpen(true)} /> : null}
             {hasPast ? <HistoryButton count={allPast.length} onClick={openHistory} /> : null}
             <SyncBar sync={sync} />
           </div>
         </div>
         <div className="mt-1.5 flex items-end justify-between gap-3 sm:mt-2">
-          <h1 className="text-[2.25rem] font-semibold leading-none tracking-tight text-[var(--fg)] sm:text-[2.5rem]">Today</h1>
+          <h1 className="text-[2.25rem] font-semibold leading-none tracking-tight text-[var(--fg)] sm:text-[2.5rem]">{t("app.today")}</h1>
           <p className="tabular shrink-0 pb-0.5 text-[12px] font-medium text-[var(--muted)] sm:pb-1 sm:text-[13px]">
             {todayItems.length === 0
-              ? "Nothing planned"
+              ? t("app.nothingPlanned")
               : todayDone === todayItems.length
-                ? "All done 🎉"
-                : todayDone + " of " + todayItems.length + " done"}
+                ? t("app.allDone")
+                : t("app.doneOf", { done: todayDone, total: todayItems.length })}
           </p>
         </div>
         <div
           className="progress mt-4 sm:mt-5"
           role="progressbar"
-          aria-label="Today's progress"
+          aria-label={t("app.progress")}
           aria-valuemin={0}
           aria-valuemax={todayItems.length}
           aria-valuenow={todayDone}
@@ -427,15 +431,15 @@ export default function App() {
       <div className="flex flex-col gap-6 sm:gap-8">
         {overdue.length > 0 ? (
           <section
-            aria-label="Overdue tasks"
+            aria-label={t("app.overdueTasks")}
             className="day-card day-card-warn"
           >
             <h2 className="mb-1 flex items-center gap-2 text-sm">
-              <span className="font-medium text-[var(--warn)]">Overdue</span>
+              <span className="font-medium text-[var(--warn)]">{t("app.overdue")}</span>
               <span className="tabular text-[var(--muted)]">{overdue.length}</span>
               <span className="flex-1" aria-hidden="true"></span>
               <button type="button" onClick={moveOverdueToToday} className="btn btn-ghost btn-sm">
-                Move all to today
+                {t("app.moveAll")}
               </button>
             </h2>
             <ul>
@@ -458,8 +462,8 @@ export default function App() {
         {upcoming.length === 0 ? (
           <p className="py-16 text-center text-sm text-[var(--muted)]">
             {dates.length === 0
-              ? "No tasks yet. Add your first one below."
-              : "No tasks for today or later."}
+              ? t("app.noTasksYet")
+              : t("app.noTasksFromToday")}
           </p>
         ) : null}
       </div>
