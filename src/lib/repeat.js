@@ -14,7 +14,7 @@ import { t, tp } from "./i18n.js";
 
 export const RULES_KEY = "task-rules-v1";
 // How many days (today included) recurring tasks are created and shown for: today and tomorrow
-export const HORIZON_DAYS = 2;
+export const HORIZON_DAYS = 14;
 
 // Monday first, as in most of Europe. Values are JS weekdays (0 = Sunday ... 6 = Saturday).
 export const WEEK = [1, 2, 3, 4, 5, 6, 0];
@@ -39,7 +39,8 @@ export const instanceId = (ruleId, date) => ruleId + "@" + date;
 // The day a generated task was created for (kept even if the task is moved to another day)
 export const instanceDate = (id) => (id.includes("@") ? id.split("@")[1] : "");
 
-export const cleanCount = (n) => (Number.isInteger(n) && n >= 1 && n <= 999 ? n : 0);
+export const cleanCount = (n) =>
+  Number.isInteger(n) && n >= 1 && n <= 999 ? n : 0;
 
 // Whole days from one ISO date to another (UTC maths, so daylight-saving changes never matter)
 const dayNumber = (iso) => {
@@ -68,7 +69,8 @@ export function occurrencesUntil(rule, date) {
   const len = dayNumber(date) - dayNumber(rule.start) + 1;
   let n = Math.floor(len / 7) * k;
   const first = weekdayOf(rule.start);
-  for (let i = 0; i < len % 7; i++) if (rule.days.includes((first + i) % 7)) n++;
+  for (let i = 0; i < len % 7; i++)
+    if (rule.days.includes((first + i) % 7)) n++;
   return n;
 }
 
@@ -79,12 +81,22 @@ export const isEnded = (rule, today) => {
 };
 
 // "Mon, Wed" / "Mon, Wed · 10 times"
-export const describeRule = (rule) => describeDays(rule.days) + (rule.count ? " · " + tp("repeat.times", rule.count) : "");
+export const describeRule = (rule) =>
+  describeDays(rule.days) +
+  (rule.count ? " · " + tp("repeat.times", rule.count) : "");
 
 // Subtask titles of a rule: plain strings, trimmed, at most 30
 export const cleanSubs = cleanTitles;
 
-export function newRule(title, days, start, time = "", count = 0, subs = [], note = "") {
+export function newRule(
+  title,
+  days,
+  start,
+  time = "",
+  count = 0,
+  subs = [],
+  note = "",
+) {
   return {
     subs: cleanSubs(subs),
     note: cleanNote(note),
@@ -102,7 +114,13 @@ export function newRule(title, days, start, time = "", count = 0, subs = [], not
 export function normalizeRules(list) {
   if (!Array.isArray(list)) return [];
   return list
-    .filter((r) => r && typeof r.id === "string" && typeof r.title === "string" && typeof r.start === "string")
+    .filter(
+      (r) =>
+        r &&
+        typeof r.id === "string" &&
+        typeof r.title === "string" &&
+        typeof r.start === "string",
+    )
     .map((r) => ({
       id: r.id,
       title: r.title,
@@ -166,7 +184,9 @@ export function isBeyondWindow(task, today) {
 export function materialize(tasks, rules, today) {
   const active = rules.filter((r) => !r.deleted && r.days.length > 0);
   if (active.length === 0) return tasks;
-  const window = Array.from({ length: HORIZON_DAYS }, (_, i) => shiftIso(today, i));
+  const window = Array.from({ length: HORIZON_DAYS }, (_, i) =>
+    shiftIso(today, i),
+  );
   const inWindow = new Set(window);
   // One pass over the tasks: which occurrences of the window already exist (even if moved or deleted), and the last
   // manual position on each day of the window
@@ -174,7 +194,8 @@ export function materialize(tasks, rules, today) {
   const lastOrder = new Map(window.map((d) => [d, 0]));
   for (const t of tasks) {
     if (t.ruleId && inWindow.has(instanceDate(t.id))) existing.add(t.id);
-    if (!t.deleted && inWindow.has(t.date) && t.order > lastOrder.get(t.date)) lastOrder.set(t.date, t.order);
+    if (!t.deleted && inWindow.has(t.date) && t.order > lastOrder.get(t.date))
+      lastOrder.set(t.date, t.order);
   }
   const added = [];
   for (const date of window) {
@@ -210,7 +231,9 @@ export function materialize(tasks, rules, today) {
 export function syncInstances(tasks, rule, today, prev = null) {
   const now = Date.now();
   const noteChanged = Boolean(prev) && (prev.note || "") !== (rule.note || "");
-  const subsChanged = prev && JSON.stringify(cleanSubs(prev.subs)) !== JSON.stringify(rule.subs || []);
+  const subsChanged =
+    prev &&
+    JSON.stringify(cleanSubs(prev.subs)) !== JSON.stringify(rule.subs || []);
   return tasks.map((t) => {
     if (t.ruleId !== rule.id || t.deleted || t.done || t.date < today) return t;
     const origin = instanceDate(t.id) || t.date;
@@ -220,9 +243,21 @@ export function syncInstances(tasks, rule, today, prev = null) {
       !rule.days.includes(weekdayOf(origin)) ||
       (rule.count > 0 && occurrencesUntil(rule, origin) > rule.count);
     if (gone) return patchTask(t, { deleted: true }, now);
-    const subs = subsChanged ? subsFromTitles(t.id, rule.subs, t.subs || [], now) : t.subs;
+    const subs = subsChanged
+      ? subsFromTitles(t.id, rule.subs, t.subs || [], now)
+      : t.subs;
     const note = noteChanged ? rule.note || "" : t.note;
-    if (t.title === rule.title && t.time === rule.time && !subsChanged && !noteChanged) return t;
-    return patchTask(t, { title: rule.title, time: rule.time, subs, note }, now);
+    if (
+      t.title === rule.title &&
+      t.time === rule.time &&
+      !subsChanged &&
+      !noteChanged
+    )
+      return t;
+    return patchTask(
+      t,
+      { title: rule.title, time: rule.time, subs, note },
+      now,
+    );
   });
 }
