@@ -100,26 +100,27 @@ test("repeat: describeDays", () => {
 test("repeat: materialize creates tasks only on the chosen weekdays, once", () => {
   const rule = newRule("gym", [1, 3, 5], "2026-10-30", "18:00");
   const tasks = materialize([], [rule], "2026-10-30");
-  // Only today and tomorrow are created: Fri 30 Oct yes, Sat 31 Oct is not a rule day
-  assert.deepEqual(tasks.map((t) => t.date), ["2026-10-30"]);
-  // The next day comes into the window by itself: Sun 1 Nov -> Mon 2 Nov is tomorrow
+  // The next 14 days are created, only on rule days: Fri 30 Oct … Thu 12 Nov
+  assert.deepEqual(tasks.map((t) => t.date), ["2026-10-30", "2026-11-02", "2026-11-04", "2026-11-06", "2026-11-09", "2026-11-11"]);
+  // Later days come into the window by themselves: from Sun 1 Nov the window reaches Sat 14 Nov (Fri 13 Nov is new)
   const next = materialize(tasks, [rule], "2026-11-01");
-  assert.deepEqual(next.map((t) => t.date), ["2026-10-30", "2026-11-02"]);
+  assert.deepEqual(next.map((t) => t.date), ["2026-10-30", "2026-11-02", "2026-11-04", "2026-11-06", "2026-11-09", "2026-11-11", "2026-11-13"]);
   assert.ok(tasks.every((t) => t.title === "gym" && t.time === "18:00" && t.ruleId === rule.id));
   assert.equal(tasks[0].id, instanceId(rule.id, "2026-10-30"));
   // Running again adds nothing and returns the same array
   assert.equal(materialize(tasks, [rule], "2026-10-30"), tasks);
-  assert.equal(HORIZON_DAYS, 2);
+  assert.equal(HORIZON_DAYS, 14);
 });
 
 test("repeat: rule start date, deleted rules and deleted tasks", () => {
   const rule = newRule("read", [0, 1, 2, 3, 4, 5, 6], "2026-11-02");
-  assert.equal(materialize([], [rule], "2026-10-30").length, 0); // starts after tomorrow: nothing yet
-  const tasks = materialize([], [rule], "2026-11-01");
+  assert.equal(materialize([], [rule], "2026-10-19").length, 0); // starts after the 14-day window (ends 1 Nov): nothing yet
+  const tasks = materialize([], [rule], "2026-10-20"); // the window now reaches 2 Nov
+  assert.equal(tasks.length, 1);
   assert.equal(tasks[0].date, "2026-11-02");
   // A task deleted by the user is not created again
   const deleted = tasks.map((t, i) => (i === 0 ? { ...t, deleted: true } : t));
-  assert.equal(materialize(deleted, [rule], "2026-10-30"), deleted);
+  assert.equal(materialize(deleted, [rule], "2026-10-20"), deleted);
   assert.equal(materialize([], [{ ...rule, deleted: true }], "2026-10-30").length, 0);
 });
 
@@ -132,20 +133,20 @@ test("repeat: two devices generating the same day merge into one task", () => {
 
 test("repeat: changing days removes future unfinished tasks of removed days only", () => {
   const rule = newRule("gym", [1, 5], "2026-10-30");
-  // Friday 30 Oct is created and done; on Sunday 1 Nov Monday 2 Nov comes into the window
+  // Created for 30 Oct … 12 Nov: Fri 30 Oct (done), Mon 2 Nov, Fri 6 Nov, Mon 9 Nov
   let tasks = materialize([], [rule], "2026-10-30");
-  tasks = tasks.map((t) => ({ ...t, done: true }));
-  tasks = materialize(tasks, [rule], "2026-11-01");
-  assert.deepEqual(tasks.map((t) => t.date), ["2026-10-30", "2026-11-02"]);
-  // Rule now only Friday: the unfinished Monday goes away, the done Friday stays untouched
+  tasks = tasks.map((t, i) => (i === 0 ? { ...t, done: true } : t));
+  assert.deepEqual(tasks.map((t) => t.date), ["2026-10-30", "2026-11-02", "2026-11-06", "2026-11-09"]);
+  // Rule now only Friday: the unfinished Mondays go away, the done Friday stays untouched, Fri 6 Nov follows the title
   const onlyFri = { ...rule, days: [5], title: "swim" };
   let live = syncInstances(tasks, onlyFri, "2026-11-01").filter((t) => !t.deleted);
-  assert.deepEqual(live.map((t) => t.date), ["2026-10-30"]);
+  assert.deepEqual(live.map((t) => t.date), ["2026-10-30", "2026-11-06"]);
   assert.equal(live[0].title, "gym");
-  // Rule now only Monday: the unfinished Monday follows the new title
+  assert.equal(live[1].title, "swim");
+  // Rule now only Monday: the unfinished Mondays follow the new title, the unfinished Friday goes away
   const onlyMon = { ...rule, days: [1], title: "swim" };
   live = syncInstances(tasks, onlyMon, "2026-11-01").filter((t) => !t.deleted);
-  assert.deepEqual(live.map((t) => t.date), ["2026-10-30", "2026-11-02"]);
+  assert.deepEqual(live.map((t) => t.date), ["2026-10-30", "2026-11-02", "2026-11-09"]);
   assert.equal(live[1].title, "swim");
   // After deleting the rule nothing unfinished remains
   const gone = syncInstances(tasks, { ...rule, deleted: true }, "2026-11-01").filter((t) => !t.deleted);
@@ -161,15 +162,16 @@ test("repeat: old data loads, rules normalize and merge", () => {
   assert.deepEqual(merged[0].days, [2]);
 });
 
-test("repeat: nextOccurrence and hiding tasks beyond the today+tomorrow window", () => {
+test("repeat: nextOccurrence and hiding tasks beyond the 14-day window", () => {
   const rule = newRule("gym", [1], "2026-10-30"); // Mondays
   assert.equal(nextOccurrence(rule, "2026-10-30"), "2026-11-02");
   assert.equal(nextOccurrence({ ...rule, days: [] }, "2026-10-30"), "");
-  // Tasks made by an older version (14 days ahead) stay stored but are hidden until their day is near
-  const far = { ...newTask("gym", "2026-11-09", 1), id: instanceId(rule.id, "2026-11-09"), ruleId: rule.id };
+  // Generated tasks further ahead than the window stay stored but are hidden until their day is near
+  const far = { ...newTask("gym", "2026-11-16", 1), id: instanceId(rule.id, "2026-11-16"), ruleId: rule.id };
   assert.equal(isBeyondWindow(far, "2026-10-30"), true);
-  assert.equal(isBeyondWindow(far, "2026-11-08"), false); // tomorrow
-  assert.equal(isBeyondWindow({ ...far, date: "2026-11-12" }, "2026-10-30"), false); // user moved it
+  assert.equal(isBeyondWindow(far, "2026-11-02"), true); // window ends 15 Nov
+  assert.equal(isBeyondWindow(far, "2026-11-03"), false); // window now reaches 16 Nov
+  assert.equal(isBeyondWindow({ ...far, date: "2026-11-19" }, "2026-10-30"), false); // user moved it
   assert.equal(isBeyondWindow({ ...far, ruleId: "" }, "2026-10-30"), false); // ordinary task
   assert.equal(isBeyondWindow({ ...far, done: true }, "2026-10-30"), false);
 });
@@ -189,7 +191,7 @@ test("repeat: a rule can end after a number of occurrences", () => {
   // Endless rules never end
   const endless = newRule("water", [1], "2026-10-26");
   assert.equal(isEnded(endless, "2030-01-01"), false);
-  assert.equal(materialize([], [endless], "2030-01-07").length, 1);
+  assert.equal(materialize([], [endless], "2030-01-07").length, 2); // Mon 7 and Mon 14 Jan
   // Lowering the count removes the unfinished tasks beyond the new last day
   const tasks = materialize([], [rule], "2026-11-02");
   const shorter = syncInstances(tasks, { ...rule, count: 2 }, "2026-11-02").filter((t) => !t.deleted);
@@ -221,7 +223,7 @@ test("recurring subtasks: copied to new occurrences, replaced only when the rule
   assert.deepEqual(normalizeRules([{ ...rule, subs: undefined }])[0].subs, []);
 
   let tasks = materialize([], [rule], today);
-  assert.equal(tasks.length, 2);
+  assert.equal(tasks.length, 4); // Mon 2, Tue 3, Mon 9, Tue 10 Nov
   assert.deepEqual(tasks[0].subs.map((s) => s.title), ["Warm up", "Stretch"]);
 
   // tick one on a single day; a plain rename keeps it
@@ -290,7 +292,7 @@ test("sync: a freshly generated recurring task never overwrites edits made on an
     updatedAt: 500,
   }));
   const merged = mergeTasks(phone, laptop);
-  assert.equal(merged.length, 1);
+  assert.equal(merged.length, 2); // Mon 2 and Mon 9 Nov
   assert.equal(merged[0].note, "bring shoes too");
   assert.equal(merged[0].subs[0].done, true);
   // and the other way round
