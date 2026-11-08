@@ -59,6 +59,18 @@ function Subtasks({ subs, onToggle }) {
 }
 
 // Date heading: day on the left, count on the right; thin progress under
+// Heading of a week on the main list: "This week  Nov 9 – 15 · Week 46 ........ 2/5"
+export function WeekHead({ primary, secondary, count }) {
+  return (
+    <h2 className="flex items-baseline gap-2 px-1">
+      <span className="text-sm font-semibold tracking-tight text-[var(--fg)]">{primary}</span>
+      <span className="min-w-0 truncate text-xs text-[var(--muted)]">{secondary}</span>
+      <span className="h-px flex-1 self-center bg-[var(--line)]" aria-hidden="true"></span>
+      <span className="tabular shrink-0 text-xs text-[var(--muted)]">{count}</span>
+    </h2>
+  );
+}
+
 export function GroupHead({ primary, secondary, count, progress }) {
   const total = progress?.total ?? 0;
   const done = progress?.done ?? 0;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DoneHead, GroupHead, TaskRow } from "./components/TaskRow.jsx";
+import { DoneHead, GroupHead, TaskRow, WeekHead } from "./components/TaskRow.jsx";
 import { HistoryButton, HistoryDay, HistoryEmpty, HistoryLoadMore, HistorySheet, HistoryStats, MonthHead } from "./components/History.jsx";
 import Composer from "./components/Composer.jsx";
 import SyncBar from "./components/SyncBar.jsx";
@@ -10,7 +10,7 @@ import LangSwitch from "./components/LangSwitch.jsx";
 import { useI18n } from "./i18n.jsx";
 import { useCloudSync } from "./hooks/useCloudSync.js";
 import { usePersist } from "./hooks/usePersist.js";
-import { groupLabel, relativeName, shiftIso, shortDate, toIso } from "./lib/dates.js";
+import { groupLabel, relativeName, shiftIso, shortDate, toIso, weekLabel, weekStart } from "./lib/dates.js";
 import { groupByMonth } from "./lib/history.js";
 import { STORAGE_KEY, cleanNote, loadTasks, maxOrder, newTask, patchTask } from "./lib/tasks.js";
 import { normalizeSubs, toggleSub } from "./lib/subs.js";
@@ -90,6 +90,24 @@ export default function App() {
     () => dates.filter((d) => d >= today),
     [dates, today],
   );
+  // Upcoming days grouped by week (Monday to Sunday), each with done/total of the week
+  const weeks = useMemo(() => {
+    const out = [];
+    for (const d of upcoming) {
+      const start = weekStart(d);
+      let w = out[out.length - 1];
+      if (!w || w.start !== start) {
+        w = { start, dates: [], total: 0, done: 0 };
+        out.push(w);
+      }
+      w.dates.push(d);
+      for (const t of byDate.get(d)) {
+        w.total++;
+        if (t.done) w.done++;
+      }
+    }
+    return out;
+  }, [upcoming, byDate]);
   // Past days: only days that have tasks, newest first. They live behind the history button.
   const allPast = useMemo(
     () => dates.filter((d) => d < today).reverse(),
@@ -458,7 +476,15 @@ export default function App() {
             </ul>
           </section>
         ) : null}
-        {upcoming.map(renderDay)}
+        {weeks.map((w) => {
+          const label = weekLabel(w.start, today);
+          return (
+            <section key={w.start} aria-label={label.primary + " " + label.secondary} className="flex flex-col gap-3 sm:gap-4">
+              <WeekHead primary={label.primary} secondary={label.secondary} count={w.total ? w.done + "/" + w.total : "0"} />
+              {w.dates.map(renderDay)}
+            </section>
+          );
+        })}
         {upcoming.length === 0 ? (
           <p className="py-16 text-center text-sm text-[var(--muted)]">
             {dates.length === 0

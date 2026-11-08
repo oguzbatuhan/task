@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { groupLabel, relativeName, shiftIso } from "../src/lib/dates.js";
+import { groupLabel, relativeName, shiftIso, weekLabel, weekNumber, weekRange, weekStart } from "../src/lib/dates.js";
 import { isValidTime, maxOrder, mergeTasks, newTask, normalizeTasks, patchTask, sameTasks } from "../src/lib/tasks.js";
 import { addSub, finalizeSubs, liveSubs, mergeSubs, removeSub, renameSub, subsFromTitles, toggleSub } from "../src/lib/subs.js";
 import { groupByMonth, monthKey, monthLabel } from "../src/lib/history.js";
@@ -396,4 +396,23 @@ test("star: set on one device while another renames; both survive, and the star 
   const unstar = patchTask(m1, { starred: false }, base.updatedAt + 3000);
   assert.equal(mergeTasks([m1], [unstar])[0].starred, false);
   assert.equal(normalizeTasks(JSON.parse(JSON.stringify([m1])))[0].starred, true);
+});
+
+test("weeks run Monday to Sunday with ISO numbers", () => {
+  assert.equal(weekStart("2026-11-08"), "2026-11-02"); // Sunday belongs to the week before
+  assert.equal(weekStart("2026-11-09"), "2026-11-09");
+  assert.equal(weekStart("2026-11-15"), "2026-11-09");
+  assert.equal(weekNumber("2026-11-08"), 45);
+  assert.equal(weekNumber("2026-11-09"), 46);
+  assert.equal(weekNumber("2026-01-01"), 1);
+  assert.equal(weekNumber("2027-01-01"), 53); // still 2026's last week
+  assert.equal(weekNumber("2024-12-30"), 1); // already 2025's week 1
+});
+
+test("week labels", () => {
+  assert.equal(weekRange("2026-11-09"), "November 9 – 15");
+  assert.equal(weekRange("2026-11-30"), "November 30 – December 6");
+  assert.deepEqual(weekLabel("2026-11-02", "2026-11-08"), { primary: "This week", secondary: "November 2 – 8 · Week 45" });
+  assert.equal(weekLabel("2026-11-09", "2026-11-08").primary, "Next week");
+  assert.deepEqual(weekLabel("2026-11-16", "2026-11-08"), { primary: "Week 47", secondary: "November 16 – 22" });
 });

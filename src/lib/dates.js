@@ -55,3 +55,44 @@ export function dayBadge(iso) {
   const d = fromIso(iso);
   return { day: String(d.getDate()), wd: weekdayShort(d) };
 }
+
+// ── Weeks (Monday to Sunday, numbered the ISO way: week 1 is the one with the year's first Thursday) ──
+
+// Monday of the week an ISO date is in
+export function weekStart(iso) {
+  const d = fromIso(iso);
+  const back = (d.getDay() + 6) % 7; // Monday 0 … Sunday 6
+  return shiftIso(iso, -back);
+}
+
+// ISO week number (1–53) of a date
+export function weekNumber(iso) {
+  const d = fromIso(weekStart(iso));
+  d.setDate(d.getDate() + 3); // the Thursday of that week decides the week's year
+  const jan1 = new Date(d.getFullYear(), 0, 1, 12);
+  const days = Math.round((d - jan1) / 86400000);
+  return Math.floor(days / 7) + 1;
+}
+
+// "Nov 9 – 15" / "9 – 15 Kasım"; across two months "Nov 30 – Dec 6" / "30 Kasım – 6 Aralık"
+export function weekRange(startIso) {
+  const a = fromIso(startIso);
+  const b = fromIso(shiftIso(startIso, 6));
+  if (a.getMonth() === b.getMonth()) {
+    const month = b.toLocaleDateString(loc(), { month: "long" });
+    return getLang() === "tr"
+      ? a.getDate() + " – " + b.getDate() + " " + month
+      : month + " " + a.getDate() + " – " + b.getDate();
+  }
+  return dayAndMonthLong(a) + " – " + dayAndMonthLong(b);
+}
+
+// Week group heading: "This week  Nov 2 – 8 · Week 45", "Week 47  Nov 16 – 22"
+export function weekLabel(startIso, today) {
+  const n = t("common.weekN", { n: weekNumber(startIso) });
+  const range = weekRange(startIso);
+  const thisWeek = weekStart(today);
+  if (startIso === thisWeek) return { primary: t("common.thisWeek"), secondary: range + " · " + n };
+  if (startIso === shiftIso(thisWeek, 7)) return { primary: t("common.nextWeek"), secondary: range + " · " + n };
+  return { primary: n, secondary: range };
+}
