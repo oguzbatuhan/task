@@ -234,15 +234,34 @@ export function syncInstances(tasks, rule, today, prev = null) {
   const subsChanged =
     prev &&
     JSON.stringify(cleanSubs(prev.subs)) !== JSON.stringify(rule.subs || []);
+  // Does the rule produce an occurrence on this day?
+  const wants = (r, origin) =>
+    !r.deleted &&
+    r.days.includes(weekdayOf(origin)) &&
+    !(r.count > 0 && occurrencesUntil(r, origin) > r.count);
   return tasks.map((t) => {
-    if (t.ruleId !== rule.id || t.deleted || t.done || t.date < today) return t;
+    if (t.ruleId !== rule.id || t.done || t.date < today) return t;
     const origin = instanceDate(t.id) || t.date;
+    // A day (or occurrence) that the rule had dropped and now wants again: bring its removed task back. Without this
+    // the old "deleted" mark would stay and the day would never be filled again. A task the user deleted on a day
+    // the rule kept all along is not revived (the rule wanted that day before as well).
+    if (t.deleted) {
+      if (prev && wants(rule, origin) && !wants(prev, origin))
+        return patchTask(
+          t,
+          {
+            deleted: false,
+            title: rule.title,
+            time: rule.time,
+            note: rule.note || "",
+            subs: subsFromTitles(t.id, rule.subs),
+          },
+          now,
+        );
+      return t;
+    }
     // Removed rule, a day that is no longer part of it, or beyond its last occurrence
-    const gone =
-      rule.deleted ||
-      !rule.days.includes(weekdayOf(origin)) ||
-      (rule.count > 0 && occurrencesUntil(rule, origin) > rule.count);
-    if (gone) return patchTask(t, { deleted: true }, now);
+    if (!wants(rule, origin)) return patchTask(t, { deleted: true }, now);
     const subs = subsChanged
       ? subsFromTitles(t.id, rule.subs, t.subs || [], now)
       : t.subs;
