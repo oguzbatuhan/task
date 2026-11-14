@@ -385,7 +385,7 @@ export default function App() {
         data-drop-date={date}
         className={
           "day-card " +
-          // layout containment makes every card its own stacking layer; off while dragging so the drop line can show on top
+          // layout containment makes every card its own stacking layer; off while dragging so the dragged row is never clipped
           (dragInfo ? "[contain:none] " : "") +
           (isToday ? "day-card-today " : "") +
           (dragInfo && all.length === 0 ? "border-dashed " : "") +
@@ -413,6 +413,7 @@ export default function App() {
               onMoveDay={moveToDay}
               onDragState={setDragInfo}
               dropIndex={dragInfo && dragInfo.date === date ? dragInfo.index : null}
+              dropGap={dragInfo ? dragInfo.h : 0}
               renderItem={(t, sortable) => (
                 <TaskRow
                   key={t.id}

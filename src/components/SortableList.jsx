@@ -10,9 +10,9 @@ const EDGE = 70; // auto-scroll when near the screen edge
 // The drop position inside that day is passed as index: onMoveDay(id, date, index).
 // onDragState({ id, date, index }) reports the day under the pointer (date is null for "no other day"), and null when the drag ends.
 // moveOnly: the list cannot be reordered (e.g. overdue tasks), items can only be moved to another day.
-// dropIndex: show a thin insertion line at this position (this list is the day the dragged task is over).
+// dropIndex / dropGap: a task from another list is over this one: rows from dropIndex on move down by dropGap px (the dragged height).
 // renderItem(item, sortable) sortable: { style, dragging, handlers, refCallback }
-export default function SortableList({ items, onReorder, onMoveDay, onDragState, moveOnly, dropIndex, renderItem }) {
+export default function SortableList({ items, onReorder, onMoveDay, onDragState, moveOnly, dropIndex, dropGap, renderItem }) {
   const nodes = useRef(new Map());
   const stop = useRef(null);
   const [drag, setDrag] = useState(null); // { id, from, to, dy }
@@ -31,6 +31,7 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
       lastX: e.clientX,
       target: null, // another day under the pointer
       targetIndex: 0, // where in that day the task would land
+      shift: 0, // px the page grew above the dragged row (a day above it opened a gap)
       startScroll: window.scrollY,
       active: false,
       centers: [],
@@ -40,15 +41,10 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
     };
 
     const update = () => {
-      const dy = s.lastY - s.startY + (window.scrollY - s.startScroll);
-      const center = s.centers[s.from] + dy;
-      let to = 0;
-      s.centers.forEach((c, j) => {
-        if (j !== s.from && c < center) to++;
-      });
       // Is the pointer over another day? Then the task moves there instead of being reordered here.
       let target = null;
       let index = 0;
+      let shift = 0;
       if (onMoveDay) {
         const ownDate = items[s.from].date;
         const el = document
@@ -57,16 +53,30 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
         if (el && el.dataset.dropDate !== ownDate) {
           target = el.dataset.dropDate;
           // Position among that day's open tasks: after every row whose middle is above the pointer
-          el.querySelectorAll("[data-task-id]").forEach((row) => {
+          const rows = el.querySelectorAll("[data-task-id]");
+          rows.forEach((row) => {
             const r = row.getBoundingClientRect();
-            if (r.top + r.height / 2 < s.lastY) index++;
+            // without the sliding-gap transform it currently has, or the index would flip back and forth
+            const slide = new DOMMatrixReadOnly(getComputedStyle(row).transform).m42;
+            if (r.top - slide + r.height / 2 < s.lastY) index++;
           });
+          // The day opens a gap (it grows by the dragged height). If it is above the dragged row, that row's place moves
+          // down by the same amount, so take it off again to keep the row under the finger.
+          const src = nodes.current.get(id);
+          if (index < rows.length && src && el.compareDocumentPosition(src) & Node.DOCUMENT_POSITION_FOLLOWING) shift = s.height;
         }
       }
+      s.shift = shift;
+      const dy = s.lastY - s.startY + (window.scrollY - s.startScroll) - s.shift;
+      const center = s.centers[s.from] + dy;
+      let to = 0;
+      s.centers.forEach((c, j) => {
+        if (j !== s.from && c < center) to++;
+      });
       if (target !== s.target || index !== s.targetIndex) {
         s.target = target;
         s.targetIndex = index;
-        if (onDragState) onDragState({ id, date: target, index });
+        if (onDragState) onDragState({ id, date: target, index, h: s.height });
       }
       s.to = target || moveOnly ? s.from : to;
       setDrag({ id, from: s.from, to: s.to, dy, h: s.height, moving: Boolean(target) });
@@ -137,7 +147,7 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
       s.startScroll = window.scrollY;
       s.startY = s.lastY;
       if (navigator.vibrate) navigator.vibrate(12);
-      if (onDragState) onDragState({ id, date: null, index: 0 });
+      if (onDragState) onDragState({ id, date: null, index: 0, h: s.height });
       update();
       // Empty days appear while dragging. If that pushes this list down, scroll along so the row stays under the
       // finger, then measure again.
@@ -169,15 +179,9 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
   }
 
   return (
-    <ul>
+    <ul style={dropIndex != null && dropIndex < items.length ? { marginBottom: dropGap || 0 } : undefined}>
       {items.map((t, i) => {
         let style;
-        const line =
-          dropIndex === i ? (
-            <li key="drop-line" aria-hidden="true" className="relative z-40 h-0">
-              <span className="absolute inset-x-1 -top-px h-0.5 rounded-full bg-[var(--accent)]"></span>
-            </li>
-          ) : null;
         const dragging = drag && drag.id === t.id;
         if (drag) {
           const shift = drag.h + GAP;
@@ -189,9 +193,11 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
             style = { transform: `translateY(${shift}px)` };
           }
         }
+        // Another day's task is hovering here: open a gap where it would land
+        if (!drag && dropIndex != null && i >= dropIndex) style = { transform: `translateY(${dropGap || 0}px)` };
         const row = renderItem(t, {
           dragging: Boolean(dragging),
-          active: Boolean(drag),
+          active: Boolean(drag) || dropIndex != null,
           style,
           refCallback: (n) => {
             if (n) nodes.current.set(t.id, n);
@@ -200,13 +206,8 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
           onPointerDown: (e) => start(e, t.id, i),
           onContextMenu: (e) => e.preventDefault(),
         });
-        return line ? [line, row] : row;
+        return row;
       })}
-      {dropIndex != null && dropIndex >= items.length ? (
-        <li key="drop-line" aria-hidden="true" className="relative z-40 h-0">
-          <span className="absolute inset-x-1 -top-px h-0.5 rounded-full bg-[var(--accent)]"></span>
-        </li>
-      ) : null}
     </ul>
   );
 }
