@@ -29,6 +29,8 @@ export default function App() {
   const [historyLimit, setHistoryLimit] = useState(HISTORY_PAGE_DAYS);
   const [openDays, setOpenDays] = useState(() => new Set());
   const [tasks, setTasks] = useState(loadTasks);
+  // A task is being dragged: { id, date, index } where date is the other day under the finger (or null)
+  const [dragInfo, setDragInfo] = useState(null);
   // Recurring rules: kept next to the tasks, they create the tasks of the coming days (see lib/repeat.js)
   const [rules, setRules] = useState(loadRules);
   const sync = useCloudSync(tasks, setTasks, rules, setRules);
@@ -86,10 +88,15 @@ export default function App() {
     }
     return out;
   }, [byDate, dates, today]);
-  const upcoming = useMemo(
-    () => dates.filter((d) => d >= today),
-    [dates, today],
-  );
+  // While a task is dragged, the next 7 days are shown even when empty, so they can be drop targets
+  const dragging = dragInfo !== null;
+  const upcoming = useMemo(() => {
+    const list = dates.filter((d) => d >= today);
+    if (!dragging) return list;
+    const all = new Set(list);
+    for (let i = 0; i < 7; i++) all.add(shiftIso(today, i));
+    return [...all].sort();
+  }, [dates, today, dragging]);
   // Upcoming days grouped by week (Monday to Sunday), each with done/total of the week
   const weeks = useMemo(() => {
     const out = [];
@@ -101,7 +108,7 @@ export default function App() {
         out.push(w);
       }
       w.dates.push(d);
-      for (const t of byDate.get(d)) {
+      for (const t of byDate.get(d) || []) {
         w.total++;
         if (t.done) w.done++;
       }
@@ -170,8 +177,13 @@ export default function App() {
 
   // Short message at the bottom; deleting offers "Undo"
   const [toast, setToast] = useState(null);
-  // A task is being dragged: { id, date } where date is the other day under the finger (or null)
-  const [dragInfo, setDragInfo] = useState(null);
+  // A recently dropped task gets a short entrance animation
+  const [landedId, setLandedId] = useState(null);
+  useEffect(() => {
+    if (!landedId) return;
+    const id = setTimeout(() => setLandedId(null), 700);
+    return () => clearTimeout(id);
+  }, [landedId]);
   const closeToast = useCallback(() => setToast(null), []);
 
   const add = (title, date, time = "", days = [], count = 0, subs = [], note = "") => {
@@ -320,11 +332,28 @@ export default function App() {
   };
 
   // Long-press, drag onto another day and let go: the task goes to the bottom of that day (undo in the toast)
-  const moveToDay = (id, date) => {
+  const moveToDay = (id, date, index) => {
     const cur = tasks.find((x) => x.id === id);
     if (!cur || cur.date === date) return;
     const before = { date: cur.date, order: cur.order };
-    setTasks((prev) => prev.map((x) => (x.id === id ? patchTask(x, { date, order: maxOrder(prev, date) + 1 }) : x)));
+    setTasks((prev) => {
+      // The day's open tasks in order, with the moved one inserted where it was dropped
+      const ids = prev
+        .filter((x) => !x.deleted && !x.done && x.date === date && x.id !== id && !isBeyondWindow(x, today))
+        .sort((a, b) => a.order - b.order || collator.compare(a.title, b.title))
+        .map((x) => x.id);
+      ids.splice(index == null ? ids.length : Math.min(index, ids.length), 0, id);
+      const position = new Map(ids.map((x, i) => [x, i + 1]));
+      const now = Date.now();
+      return prev.map((x) =>
+        x.id === id
+          ? patchTask(x, { date, order: position.get(id) }, now)
+          : position.has(x.id)
+            ? patchTask(x, { order: position.get(x.id) }, now)
+            : x,
+      );
+    });
+    setLandedId(id);
     setToast({
       key: Date.now(),
       message: t("toast.movedTo", { day: relativeName(date, today) || shortDate(date) }),
@@ -357,6 +386,7 @@ export default function App() {
         className={
           "day-card " +
           (isToday ? "day-card-today " : "") +
+          (dragInfo && all.length === 0 ? "border-dashed " : "") +
           (dragInfo && dragInfo.date === date ? "ring-2 ring-[var(--accent)] " : "") +
           // the card the dragged task comes from must float above the other day cards
           (dragInfo && items.some((x) => x.id === dragInfo.id) ? "relative z-30 " : "")
@@ -380,6 +410,7 @@ export default function App() {
               onReorder={(from, to) => reorder(items, from, to)}
               onMoveDay={moveToDay}
               onDragState={setDragInfo}
+              dropIndex={dragInfo && dragInfo.date === date ? dragInfo.index : null}
               renderItem={(t, sortable) => (
                 <TaskRow
                   key={t.id}
@@ -390,6 +421,7 @@ export default function App() {
                   onRemove={remove}
                   onToggleSub={toggleSubtask}
                   onToggleStar={toggleStar}
+                  landed={landedId === t.id}
                 />
               )}
             />
@@ -474,7 +506,7 @@ export default function App() {
         {overdue.length > 0 ? (
           <section
             aria-label={t("app.overdueTasks")}
-            className="day-card day-card-warn"
+            className={"day-card day-card-warn " + (dragInfo && overdue.some((x) => x.id === dragInfo.id) ? "relative z-30" : "")}
           >
             <h2 className="mb-1 flex items-center gap-2 text-sm">
               <span className="font-medium text-[var(--warn)]">{t("app.overdue")}</span>
@@ -484,11 +516,16 @@ export default function App() {
                 {t("app.moveAll")}
               </button>
             </h2>
-            <ul>
-              {overdue.map((t) => (
+            <SortableList
+              items={overdue}
+              moveOnly
+              onMoveDay={moveToDay}
+              onDragState={setDragInfo}
+              renderItem={(t, sortable) => (
                 <TaskRow
                   key={t.id}
                   task={t}
+                  sortable={sortable}
                   dateLabel={relativeName(t.date, today) || shortDate(t.date)}
                   onToggle={toggle}
                   onEdit={setEditingId}
@@ -496,8 +533,8 @@ export default function App() {
                   onToggleSub={toggleSubtask}
                   onToggleStar={toggleStar}
                 />
-              ))}
-            </ul>
+              )}
+            />
           </section>
         ) : null}
         {weeks.map((w) => {

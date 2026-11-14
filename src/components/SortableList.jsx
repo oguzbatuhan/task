@@ -7,9 +7,12 @@ const EDGE = 70; // auto-scroll when near the screen edge
 
 // Reorders list items by long-press and drag. While dragging, the pointer can also be moved over another day
 // (any element with data-drop-date, i.e. another day card): letting go there calls onMoveDay(id, date).
-// onDragState({ id, date }) reports the day under the pointer (date is null for "no other day"), and null when the drag ends.
+// The drop position inside that day is passed as index: onMoveDay(id, date, index).
+// onDragState({ id, date, index }) reports the day under the pointer (date is null for "no other day"), and null when the drag ends.
+// moveOnly: the list cannot be reordered (e.g. overdue tasks), items can only be moved to another day.
+// dropIndex: show a thin insertion line at this position (this list is the day the dragged task is over).
 // renderItem(item, sortable) sortable: { style, dragging, handlers, refCallback }
-export default function SortableList({ items, onReorder, onMoveDay, onDragState, renderItem }) {
+export default function SortableList({ items, onReorder, onMoveDay, onDragState, moveOnly, dropIndex, renderItem }) {
   const nodes = useRef(new Map());
   const stop = useRef(null);
   const [drag, setDrag] = useState(null); // { id, from, to, dy }
@@ -27,6 +30,7 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
       lastY: e.clientY,
       lastX: e.clientX,
       target: null, // another day under the pointer
+      targetIndex: 0, // where in that day the task would land
       startScroll: window.scrollY,
       active: false,
       centers: [],
@@ -44,18 +48,27 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
       });
       // Is the pointer over another day? Then the task moves there instead of being reordered here.
       let target = null;
+      let index = 0;
       if (onMoveDay) {
         const ownDate = items[s.from].date;
         const el = document
           .elementsFromPoint(s.lastX, s.lastY)
           .find((n) => n.dataset && n.dataset.dropDate);
-        if (el && el.dataset.dropDate !== ownDate) target = el.dataset.dropDate;
+        if (el && el.dataset.dropDate !== ownDate) {
+          target = el.dataset.dropDate;
+          // Position among that day's open tasks: after every row whose middle is above the pointer
+          el.querySelectorAll("[data-task-id]").forEach((row) => {
+            const r = row.getBoundingClientRect();
+            if (r.top + r.height / 2 < s.lastY) index++;
+          });
+        }
       }
-      if (target !== s.target) {
+      if (target !== s.target || index !== s.targetIndex) {
         s.target = target;
-        if (onDragState) onDragState({ id, date: target });
+        s.targetIndex = index;
+        if (onDragState) onDragState({ id, date: target, index });
       }
-      s.to = target ? s.from : to;
+      s.to = target || moveOnly ? s.from : to;
       setDrag({ id, from: s.from, to: s.to, dy, h: s.height, moving: Boolean(target) });
     };
 
@@ -101,7 +114,7 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
       if (wasActive) {
         setDrag(null);
         if (onDragState) onDragState(null);
-        if (s.target) onMoveDay(id, s.target);
+        if (s.target) onMoveDay(id, s.target, s.targetIndex);
         else if (s.to !== s.from) onReorder(s.from, s.to);
       }
     };
@@ -124,8 +137,27 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
       s.startScroll = window.scrollY;
       s.startY = s.lastY;
       if (navigator.vibrate) navigator.vibrate(12);
-      if (onDragState) onDragState({ id, date: null });
+      if (onDragState) onDragState({ id, date: null, index: 0 });
       update();
+      // Empty days appear while dragging. If that pushes this list down, scroll along so the row stays under the
+      // finger, then measure again.
+      const node = nodes.current.get(id);
+      const topBefore = rects[index].top;
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (!s.active || !node) return;
+          const delta = node.getBoundingClientRect().top - topBefore;
+          if (Math.abs(delta) > 0.5) window.scrollBy(0, delta);
+          const again = items.map((t) => nodes.current.get(t.id));
+          if (again.some((n) => !n)) return;
+          s.centers = again.map((n) => {
+            const r = n.getBoundingClientRect();
+            return r.top + r.height / 2 + window.scrollY;
+          });
+          s.startScroll = window.scrollY;
+          update();
+        }),
+      );
       s.raf = requestAnimationFrame(tick);
     }, HOLD_MS);
 
@@ -140,6 +172,12 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
     <ul>
       {items.map((t, i) => {
         let style;
+        const line =
+          dropIndex === i ? (
+            <li key="drop-line" aria-hidden="true" className="relative h-0">
+              <span className="absolute inset-x-1 -top-px h-0.5 rounded-full bg-[var(--accent)]"></span>
+            </li>
+          ) : null;
         const dragging = drag && drag.id === t.id;
         if (drag) {
           const shift = drag.h + GAP;
@@ -151,7 +189,7 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
             style = { transform: `translateY(${shift}px)` };
           }
         }
-        return renderItem(t, {
+        const row = renderItem(t, {
           dragging: Boolean(dragging),
           active: Boolean(drag),
           style,
@@ -162,7 +200,13 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
           onPointerDown: (e) => start(e, t.id, i),
           onContextMenu: (e) => e.preventDefault(),
         });
+        return line ? [line, row] : row;
       })}
+      {dropIndex != null && dropIndex >= items.length ? (
+        <li key="drop-line" aria-hidden="true" className="relative h-0">
+          <span className="absolute inset-x-1 -top-px h-0.5 rounded-full bg-[var(--accent)]"></span>
+        </li>
+      ) : null}
     </ul>
   );
 }

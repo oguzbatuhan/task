@@ -154,6 +154,7 @@ function TaskRowBase({
   onToggleSub,
   onToggleStar,
   dateLabel,
+  landed,
 }) {
   const { t } = useI18n();
   // onOpen: old prop name, so an App.jsx that was not updated still opens the editor
@@ -247,7 +248,7 @@ function TaskRowBase({
         ? "rounded-lg bg-[var(--hover)] "
         : "rounded-lg hover:bg-[var(--hover)] ") +
     (phase === "fading" ? "task-out " : "") +
-    (task.done ? "task-in " : "") +
+    (task.done || landed ? "task-in " : "") +
     (sortable
       ? "select-none [-webkit-touch-callout:none] " +
         (sortable.active && !dragging
@@ -268,6 +269,7 @@ function TaskRowBase({
             ? sortable.style
             : undefined
       }
+      data-task-id={sortable ? task.id : undefined}
       onPointerDown={trackPress}
       onContextMenu={sortable ? sortable.onContextMenu : undefined}
       className={cls}
