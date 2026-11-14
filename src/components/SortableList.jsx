@@ -174,7 +174,7 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
         let style;
         const line =
           dropIndex === i ? (
-            <li key="drop-line" aria-hidden="true" className="relative h-0">
+            <li key="drop-line" aria-hidden="true" className="relative z-40 h-0">
               <span className="absolute inset-x-1 -top-px h-0.5 rounded-full bg-[var(--accent)]"></span>
             </li>
           ) : null;
@@ -203,7 +203,7 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
         return line ? [line, row] : row;
       })}
       {dropIndex != null && dropIndex >= items.length ? (
-        <li key="drop-line" aria-hidden="true" className="relative h-0">
+        <li key="drop-line" aria-hidden="true" className="relative z-40 h-0">
           <span className="absolute inset-x-1 -top-px h-0.5 rounded-full bg-[var(--accent)]"></span>
         </li>
       ) : null}

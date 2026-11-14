@@ -243,7 +243,7 @@ function TaskRowBase({
   const cls =
     "relative text-sm my-0.5 " +
     (dragging
-      ? "z-10 rounded-lg bg-[var(--surface)] shadow-md ring-2 ring-[var(--accent)] "
+      ? "z-10 rounded-lg bg-[var(--surface)] shadow-lg "
       : isOpen
         ? "rounded-lg bg-[var(--hover)] "
         : "rounded-lg hover:bg-[var(--hover)] ") +

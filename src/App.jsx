@@ -385,6 +385,8 @@ export default function App() {
         data-drop-date={date}
         className={
           "day-card " +
+          // layout containment makes every card its own stacking layer; off while dragging so the drop line can show on top
+          (dragInfo ? "[contain:none] " : "") +
           (isToday ? "day-card-today " : "") +
           (dragInfo && all.length === 0 ? "border-dashed " : "") +
           (dragInfo && dragInfo.date === date ? "ring-2 ring-[var(--accent)] " : "") +
@@ -506,7 +508,7 @@ export default function App() {
         {overdue.length > 0 ? (
           <section
             aria-label={t("app.overdueTasks")}
-            className={"day-card day-card-warn " + (dragInfo && overdue.some((x) => x.id === dragInfo.id) ? "relative z-30" : "")}
+            className={"day-card day-card-warn " + (dragInfo ? "[contain:none] " : "") + (dragInfo && overdue.some((x) => x.id === dragInfo.id) ? "relative z-30" : "")}
           >
             <h2 className="mb-1 flex items-center gap-2 text-sm">
               <span className="font-medium text-[var(--warn)]">{t("app.overdue")}</span>
