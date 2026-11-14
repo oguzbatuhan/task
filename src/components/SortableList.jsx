@@ -6,7 +6,7 @@ const GAP = 0; // rows are flush, separated by divider lines
 const EDGE = 70; // auto-scroll when near the screen edge
 
 // Reorders list items by long-press and drag. While dragging, the pointer can also be moved over another day
-// (any element with data-drop-date, e.g. another day card or the day bar): letting go there calls onMoveDay(id, date).
+// (any element with data-drop-date, i.e. another day card): letting go there calls onMoveDay(id, date).
 // onDragState({ id, date }) reports the day under the pointer (date is null for "no other day"), and null when the drag ends.
 // renderItem(item, sortable) sortable: { style, dragging, handlers, refCallback }
 export default function SortableList({ items, onReorder, onMoveDay, onDragState, renderItem }) {
@@ -27,7 +27,6 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
       lastY: e.clientY,
       lastX: e.clientX,
       target: null, // another day under the pointer
-      overBar: false, // that day is a chip of the day bar (no edge auto-scroll there)
       startScroll: window.scrollY,
       active: false,
       centers: [],
@@ -45,22 +44,17 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
       });
       // Is the pointer over another day? Then the task moves there instead of being reordered here.
       let target = null;
-      let overBar = false;
       if (onMoveDay) {
         const ownDate = items[s.from].date;
         const el = document
           .elementsFromPoint(s.lastX, s.lastY)
           .find((n) => n.dataset && n.dataset.dropDate);
-        if (el) {
-          overBar = el.dataset.dropBar === "1";
-          if (el.dataset.dropDate !== ownDate) target = el.dataset.dropDate;
-        }
+        if (el && el.dataset.dropDate !== ownDate) target = el.dataset.dropDate;
       }
       if (target !== s.target) {
         s.target = target;
         if (onDragState) onDragState({ id, date: target });
       }
-      s.overBar = overBar;
       s.to = target ? s.from : to;
       setDrag({ id, from: s.from, to: s.to, dy, h: s.height, moving: Boolean(target) });
     };
@@ -69,8 +63,7 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
       if (!s.active) return;
       const vh = window.innerHeight;
       let v = 0;
-      if (s.overBar) v = 0;
-      else if (s.lastY < EDGE) v = -Math.ceil((EDGE - s.lastY) / 5);
+      if (s.lastY < EDGE) v = -Math.ceil((EDGE - s.lastY) / 5);
       else if (s.lastY > vh - EDGE) v = Math.ceil((s.lastY - (vh - EDGE)) / 5);
       if (v) {
         window.scrollBy(0, v);
@@ -131,6 +124,7 @@ export default function SortableList({ items, onReorder, onMoveDay, onDragState,
       s.startScroll = window.scrollY;
       s.startY = s.lastY;
       if (navigator.vibrate) navigator.vibrate(12);
+      if (onDragState) onDragState({ id, date: null });
       update();
       s.raf = requestAnimationFrame(tick);
     }, HOLD_MS);

@@ -10,7 +10,7 @@ import LangSwitch from "./components/LangSwitch.jsx";
 import { useI18n } from "./i18n.jsx";
 import { useCloudSync } from "./hooks/useCloudSync.js";
 import { usePersist } from "./hooks/usePersist.js";
-import { dayBadge, groupLabel, relativeName, shiftIso, shortDate, toIso, weekLabel, weekStart } from "./lib/dates.js";
+import { groupLabel, relativeName, shiftIso, shortDate, toIso, weekLabel, weekStart } from "./lib/dates.js";
 import { groupByMonth } from "./lib/history.js";
 import { STORAGE_KEY, cleanNote, loadTasks, maxOrder, newTask, patchTask } from "./lib/tasks.js";
 import { normalizeSubs, toggleSub } from "./lib/subs.js";
@@ -357,7 +357,9 @@ export default function App() {
         className={
           "day-card " +
           (isToday ? "day-card-today " : "") +
-          (dragInfo && dragInfo.date === date ? "ring-2 ring-[var(--accent)] " : "")
+          (dragInfo && dragInfo.date === date ? "ring-2 ring-[var(--accent)] " : "") +
+          // the card the dragged task comes from must float above the other day cards
+          (dragInfo && items.some((x) => x.id === dragInfo.id) ? "relative z-30 " : "")
         }
       >
         {isToday ? null : (
@@ -572,41 +574,6 @@ export default function App() {
             onLoadMore={() => setHistoryLimit((n) => n + HISTORY_PAGE_DAYS)}
           />
         </HistorySheet>
-      ) : null}
-
-      {dragInfo ? (
-        <div
-          role="group"
-          aria-label={t("app.moveToDay")}
-          className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--line-strong)] bg-[var(--surface)] px-3 pt-3 shadow-xl"
-          style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))" }}
-        >
-          <div className="mx-auto grid max-w-xl grid-cols-5 gap-2">
-            {Array.from({ length: 10 }, (_, i) => shiftIso(today, i)).map((d) => {
-              const b = dayBadge(d);
-              const own = tasks.find((x) => x.id === dragInfo.id)?.date === d;
-              const hot = dragInfo.date === d;
-              return (
-                <div
-                  key={d}
-                  data-drop-date={d}
-                  data-drop-bar="1"
-                  className={
-                    "flex h-14 flex-col items-center justify-center rounded-xl border text-center transition-colors " +
-                    (hot
-                      ? "border-transparent bg-[var(--accent)] text-[var(--accent-fg)]"
-                      : own
-                        ? "border-dashed border-[var(--line-strong)] text-[var(--muted)] opacity-60"
-                        : "border-[var(--line-strong)] text-[var(--fg)]")
-                  }
-                >
-                  <span className="text-[0.6875rem] font-medium leading-tight">{relativeName(d, today) || b.wd}</span>
-                  <span className="tabular text-base font-semibold leading-tight">{b.day}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       ) : null}
 
       <Toast toast={toast} onClose={closeToast} />
