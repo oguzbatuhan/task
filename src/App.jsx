@@ -10,7 +10,7 @@ import LangSwitch from "./components/LangSwitch.jsx";
 import { useI18n } from "./i18n.jsx";
 import { useCloudSync } from "./hooks/useCloudSync.js";
 import { usePersist } from "./hooks/usePersist.js";
-import { groupLabel, relativeName, shiftIso, shortDate, toIso, weekLabel, weekStart } from "./lib/dates.js";
+import { dayBadge, groupLabel, relativeName, shiftIso, shortDate, toIso, weekLabel, weekStart } from "./lib/dates.js";
 import { groupByMonth } from "./lib/history.js";
 import { STORAGE_KEY, cleanNote, loadTasks, maxOrder, newTask, patchTask } from "./lib/tasks.js";
 import { normalizeSubs, toggleSub } from "./lib/subs.js";
@@ -170,6 +170,8 @@ export default function App() {
 
   // Short message at the bottom; deleting offers "Undo"
   const [toast, setToast] = useState(null);
+  // A task is being dragged: { id, date } where date is the other day under the finger (or null)
+  const [dragInfo, setDragInfo] = useState(null);
   const closeToast = useCallback(() => setToast(null), []);
 
   const add = (title, date, time = "", days = [], count = 0, subs = [], note = "") => {
@@ -317,6 +319,19 @@ export default function App() {
     setTasks((prev) => prev.map((t) => (position.has(t.id) ? patchTask(t, { order: position.get(t.id) }, now) : t)));
   };
 
+  // Long-press, drag onto another day and let go: the task goes to the bottom of that day (undo in the toast)
+  const moveToDay = (id, date) => {
+    const cur = tasks.find((x) => x.id === id);
+    if (!cur || cur.date === date) return;
+    const before = { date: cur.date, order: cur.order };
+    setTasks((prev) => prev.map((x) => (x.id === id ? patchTask(x, { date, order: maxOrder(prev, date) + 1 }) : x)));
+    setToast({
+      key: Date.now(),
+      message: t("toast.movedTo", { day: relativeName(date, today) || shortDate(date) }),
+      undo: () => setTasks((prev) => prev.map((x) => (x.id === id ? patchTask(x, before) : x))),
+    });
+  };
+
   // Completed-area collapsed state per day (closed by default)
   const [doneOpenSet, setDoneOpenSet] = useState(() => new Set());
   const toggleDone = (date) =>
@@ -338,7 +353,12 @@ export default function App() {
       <section
         key={date}
         aria-label={label.primary + " " + label.secondary}
-        className={"day-card " + (isToday ? "day-card-today" : "")}
+        data-drop-date={date}
+        className={
+          "day-card " +
+          (isToday ? "day-card-today " : "") +
+          (dragInfo && dragInfo.date === date ? "ring-2 ring-[var(--accent)] " : "")
+        }
       >
         {isToday ? null : (
           <GroupHead
@@ -356,6 +376,8 @@ export default function App() {
             <SortableList
               items={items}
               onReorder={(from, to) => reorder(items, from, to)}
+              onMoveDay={moveToDay}
+              onDragState={setDragInfo}
               renderItem={(t, sortable) => (
                 <TaskRow
                   key={t.id}
@@ -550,6 +572,41 @@ export default function App() {
             onLoadMore={() => setHistoryLimit((n) => n + HISTORY_PAGE_DAYS)}
           />
         </HistorySheet>
+      ) : null}
+
+      {dragInfo ? (
+        <div
+          role="group"
+          aria-label={t("app.moveToDay")}
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--line-strong)] bg-[var(--surface)] px-3 pt-3 shadow-xl"
+          style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))" }}
+        >
+          <div className="mx-auto grid max-w-xl grid-cols-5 gap-2">
+            {Array.from({ length: 10 }, (_, i) => shiftIso(today, i)).map((d) => {
+              const b = dayBadge(d);
+              const own = tasks.find((x) => x.id === dragInfo.id)?.date === d;
+              const hot = dragInfo.date === d;
+              return (
+                <div
+                  key={d}
+                  data-drop-date={d}
+                  data-drop-bar="1"
+                  className={
+                    "flex h-14 flex-col items-center justify-center rounded-xl border text-center transition-colors " +
+                    (hot
+                      ? "border-transparent bg-[var(--accent)] text-[var(--accent-fg)]"
+                      : own
+                        ? "border-dashed border-[var(--line-strong)] text-[var(--muted)] opacity-60"
+                        : "border-[var(--line-strong)] text-[var(--fg)]")
+                  }
+                >
+                  <span className="text-[0.6875rem] font-medium leading-tight">{relativeName(d, today) || b.wd}</span>
+                  <span className="tabular text-base font-semibold leading-tight">{b.day}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       ) : null}
 
       <Toast toast={toast} onClose={closeToast} />

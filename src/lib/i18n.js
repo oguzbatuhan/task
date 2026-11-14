@@ -30,6 +30,8 @@ const en = {
   "toast.ruleDeleted": "Recurring task deleted",
   "toast.moved_one": "{n} task moved to today",
   "toast.moved_other": "{n} tasks moved to today",
+  "toast.movedTo": "Moved to {day}",
+  "app.moveToDay": "Drop on a day to move the task",
 
   // Language switch
   "lang.label": "Language",
@@ -200,6 +202,8 @@ const tr = {
   "toast.ruleDeleted": "Tekrarlayan görev silindi",
   "toast.moved_one": "{n} görev bugüne taşındı",
   "toast.moved_other": "{n} görev bugüne taşındı",
+  "toast.movedTo": "Taşındı: {day}",
+  "app.moveToDay": "Görevi taşımak için bir günün üstüne bırak",
 
   // Language switch
   "lang.label": "Dil",
