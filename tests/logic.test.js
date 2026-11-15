@@ -418,3 +418,17 @@ test("week labels", () => {
   assert.equal(weekLabel("2026-11-09", "2026-11-08").primary, "Next week");
   assert.deepEqual(weekLabel("2026-11-16", "2026-11-08"), { primary: "Week 47", secondary: "November 16 – 22" });
 });
+
+// ── Tombstones (one shared 90-day window for tasks, rules and subtasks) ──
+import { TOMBSTONE_MS } from "../src/lib/tombstone.js";
+
+test("tombstone window is 90 days", () => {
+  assert.equal(TOMBSTONE_MS, 90 * 24 * 60 * 60 * 1000);
+});
+
+test("a deleted task is kept for 90 days, then forgotten when merging", () => {
+  const day = 24 * 60 * 60 * 1000;
+  const mk = (id, ageDays) => ({ ...newTask("x", "2026-10-30", 1), id, deleted: true, updatedAt: Date.now() - ageDays * day });
+  const merged = mergeTasks([mk("a", 60), mk("b", 100)], []);
+  assert.deepEqual(merged.map((t) => t.id), ["a"]);
+});

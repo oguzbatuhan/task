@@ -11,6 +11,7 @@ import { fromIso, shiftIso } from "./dates.js";
 import { cleanNote, isValidTime, newTask, patchTask, uid } from "./tasks.js";
 import { cleanTitles, subsFromTitles } from "./subs.js";
 import { t, tp } from "./i18n.js";
+import { TOMBSTONE_MS } from "./tombstone.js";
 
 export const RULES_KEY = "task-rules-v1";
 // How many days (today included) recurring tasks are created and shown for: today and tomorrow
@@ -135,7 +136,6 @@ export function normalizeRules(list) {
     }));
 }
 
-const TOMBSTONE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function mergeRules(local, remote) {
   const byId = new Map();

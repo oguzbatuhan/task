@@ -6,8 +6,8 @@
 //  - deleted keeps a removed subtask as a short-lived "tombstone", so the removal reaches other devices too;
 //  - pos is the position in the list (ties are broken by id, so every device sorts the same way).
 import { uid } from "./id.js";
+import { TOMBSTONE_MS } from "./tombstone.js";
 
-const TOMBSTONE_MS = 30 * 24 * 60 * 60 * 1000;
 export const MAX_SUBS = 30;
 export const SUB_TITLE_MAX = 200;
 

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DoneHead, GroupHead, TaskRow, WeekHead } from "./components/TaskRow.jsx";
-import { HistoryButton, HistoryDay, HistoryEmpty, HistoryLoadMore, HistorySheet, HistoryStats, MonthHead } from "./components/History.jsx";
+import { HistoryButton, HistorySheet, HistoryStats } from "./components/History.jsx";
 import Composer from "./components/Composer.jsx";
 import SyncBar from "./components/SyncBar.jsx";
 import EditDialog from "./components/EditDialog.jsx";
@@ -10,11 +10,12 @@ import LangSwitch from "./components/LangSwitch.jsx";
 import { useI18n } from "./i18n.jsx";
 import { useCloudSync } from "./hooks/useCloudSync.js";
 import { usePersist } from "./hooks/usePersist.js";
+import { useTaskActions } from "./hooks/useTaskActions.js";
+import HistoryList from "./components/HistoryList.jsx";
 import { groupLabel, relativeName, shiftIso, shortDate, toIso, weekLabel, weekStart } from "./lib/dates.js";
 import { groupByMonth } from "./lib/history.js";
-import { STORAGE_KEY, cleanNote, loadTasks, maxOrder, newTask, patchTask } from "./lib/tasks.js";
-import { normalizeSubs, toggleSub } from "./lib/subs.js";
-import { RULES_KEY, cleanSubs, describeRule, loadRules, isBeyondWindow, materialize, newRule, nextOccurrence, syncInstances } from "./lib/repeat.js";
+import { STORAGE_KEY, loadTasks } from "./lib/tasks.js";
+import { RULES_KEY, describeRule, loadRules, isBeyondWindow, materialize } from "./lib/repeat.js";
 import { RulesButton, RulesSheet } from "./components/RulesSheet.jsx";
 
 const HISTORY_PAGE_DAYS = 30;
@@ -124,7 +125,7 @@ export default function App() {
 
   // Opening starts fresh: newest day open, first page of days
   const openHistory = () => {
-    setOpenDays(new Set());
+    setOpenDays(new Set(allPast.length ? [allPast[0]] : []));
     setHistoryLimit(HISTORY_PAGE_DAYS);
     setHistoryOpen(true);
   };
@@ -175,86 +176,11 @@ export default function App() {
   const todayItems = byDate.get(today) || [];
   const todayDone = todayItems.filter((t) => t.done).length;
 
-  // Short message at the bottom; deleting offers "Undo"
-  const [toast, setToast] = useState(null);
-  // A recently dropped task gets a short entrance animation
-  const [landedId, setLandedId] = useState(null);
-  useEffect(() => {
-    if (!landedId) return;
-    const id = setTimeout(() => setLandedId(null), 700);
-    return () => clearTimeout(id);
-  }, [landedId]);
-  const closeToast = useCallback(() => setToast(null), []);
-
-  const add = (title, date, time = "", days = [], count = 0, subs = [], note = "") => {
-    if (days.length > 0) {
-      const rule = newRule(title, days, date, time, count, subs, note);
-      setRules((prev) => [...prev, rule]);
-      // the tasks themselves are created by the effect above (only for today and tomorrow)
-      const first = nextOccurrence(rule, today);
-      const later = first > shiftIso(today, 1);
-      setToast({
-        key: Date.now(),
-        message: later ? t("toast.recurringLater", { date: shortDate(first) }) : t("toast.recurringAdded"),
-      });
-      return;
-    }
-    addOne(title, date, time, { subs, note });
-  };
-  const addOne = (title, date, time = "", extra = {}) =>
-    // A new task is appended to the bottom of that day's list
-    setTasks((prev) => [...prev, newTask(title, date, maxOrder(prev, date) + 1, time, extra)]);
-
-  // Handlers are stable (functional updates only), so memoized task rows do not re-render needlessly
-  const toggle = useCallback(
-    (id) => setTasks((prev) => prev.map((t) => (t.id === id ? patchTask(t, { done: !t.done }) : t))),
-    [],
-  );
-  const toggleStar = useCallback(
-    (id) => setTasks((prev) => prev.map((t) => (t.id === id ? patchTask(t, { starred: !t.starred }) : t))),
-    [],
-  );
-  // Ticking a subtask changes only that subtask (its own timestamp), so it merges cleanly with other devices
-  const toggleSubtask = useCallback(
-    (id, subId) =>
-      setTasks((prev) =>
-        prev.map((t) => (t.id === id ? patchTask(t, { subs: toggleSub(t.subs, subId) }) : t)),
-      ),
-    [],
-  );
-  const setDeleted = useCallback(
-    (id, deleted) =>
-      setTasks((prev) => prev.map((t) => (t.id === id ? patchTask(t, { deleted }) : t))),
-    [],
-  );
-  const remove = useCallback(
-    (id) => {
-      setDeleted(id, true);
-      setToast({ key: Date.now(), message: t("toast.deleted"), undo: () => setDeleted(id, false) });
-    },
-    [setDeleted, t],
-  );
-
-  const moveOverdueToToday = () => {
-    const ids = new Set(overdue.map((t) => t.id));
-    const before = new Map(overdue.map((t) => [t.id, t]));
-    setTasks((prev) => {
-      let last = maxOrder(prev, today);
-      const now = Date.now();
-      return prev.map((t) => (ids.has(t.id) ? patchTask(t, { date: today, order: ++last }, now) : t));
-    });
-    setToast({
-      key: Date.now(),
-      message: tp("toast.moved", ids.size),
-      undo: () =>
-        setTasks((prev) =>
-          prev.map((t) => {
-            const old = before.get(t.id);
-            return old ? patchTask(t, { date: old.date, order: old.order }) : t;
-          }),
-        ),
-    });
-  };
+  const {
+    toast, closeToast, landedId,
+    add, toggle, toggleStar, toggleSubtask, remove, save: saveTask,
+    moveOverdueToToday, reorder, moveToDay, saveRule: saveRuleData, removeRule: removeRuleData,
+  } = useTaskActions({ tasks, setTasks, rules, setRules, today, collator, t, tp });
 
   // "n" or "/" jumps to the new-task field (when not typing somewhere)
   useEffect(() => {
@@ -288,33 +214,18 @@ export default function App() {
     if (liveRules.length === 0) setRulesOpen(false);
   }, [liveRules.length]);
 
-  const saveRule = (id, { title, time, days, count, subs, note }) => {
-    const cur = rules.find((r) => r.id === id);
-    if (!cur) return;
-    const next = { ...cur, title, time, days, count, subs: cleanSubs(subs), note: cleanNote(note), updatedAt: Date.now() };
-    setRules((prev) => prev.map((r) => (r.id === id ? next : r)));
-    setTasks((prev) => syncInstances(prev, next, today, cur));
+  const saveRule = (id, data) => {
+    saveRuleData(id, data);
     setEditingRuleId(null);
   };
   const removeRule = (id) => {
-    const cur = rules.find((r) => r.id === id);
-    if (!cur) return;
-    const next = { ...cur, deleted: true, updatedAt: Date.now() };
-    setRules((prev) => prev.map((r) => (r.id === id ? next : r)));
-    setTasks((prev) => syncInstances(prev, next, today));
+    removeRuleData(id);
     setEditingRuleId(null);
-    setToast({ key: Date.now(), message: t("toast.ruleDeleted") });
   };
 
-  const save = (id, { title, date, time, note, subs }) => {
-    setTasks((prev) => {
-      const cur = prev.find((t) => t.id === id);
-      if (!cur) return prev;
-      // Moved to another day: goes to the bottom of that day's list
-      const order = date !== cur.date ? maxOrder(prev, date) + 1 : cur.order;
-      const next = patchTask(cur, { title, date, time, note: cleanNote(note), subs: normalizeSubs(subs ?? cur.subs), order });
-      return next === cur ? prev : prev.map((t) => (t.id === id ? next : t));
-    });
+
+  const save = (id, data) => {
+    saveTask(id, data);
     setEditingId(null);
   };
   const removeAndClose = (id) => {
@@ -322,44 +233,6 @@ export default function App() {
     setEditingId(null);
   };
 
-  // Long-press and drag to reorder tasks within the same day
-  const reorder = (items, from, to) => {
-    const ids = items.map((t) => t.id);
-    ids.splice(to, 0, ids.splice(from, 1)[0]);
-    const position = new Map(ids.map((id, i) => [id, i + 1]));
-    const now = Date.now();
-    setTasks((prev) => prev.map((t) => (position.has(t.id) ? patchTask(t, { order: position.get(t.id) }, now) : t)));
-  };
-
-  // Long-press, drag onto another day and let go: the task goes to the bottom of that day (undo in the toast)
-  const moveToDay = (id, date, index) => {
-    const cur = tasks.find((x) => x.id === id);
-    if (!cur || cur.date === date) return;
-    const before = { date: cur.date, order: cur.order };
-    setTasks((prev) => {
-      // The day's open tasks in order, with the moved one inserted where it was dropped
-      const ids = prev
-        .filter((x) => !x.deleted && !x.done && x.date === date && x.id !== id && !isBeyondWindow(x, today))
-        .sort((a, b) => a.order - b.order || collator.compare(a.title, b.title))
-        .map((x) => x.id);
-      ids.splice(index == null ? ids.length : Math.min(index, ids.length), 0, id);
-      const position = new Map(ids.map((x, i) => [x, i + 1]));
-      const now = Date.now();
-      return prev.map((x) =>
-        x.id === id
-          ? patchTask(x, { date, order: position.get(id) }, now)
-          : position.has(x.id)
-            ? patchTask(x, { order: position.get(x.id) }, now)
-            : x,
-      );
-    });
-    setLandedId(id);
-    setToast({
-      key: Date.now(),
-      message: t("toast.movedTo", { day: relativeName(date, today) || shortDate(date) }),
-      undo: () => setTasks((prev) => prev.map((x) => (x.id === id ? patchTask(x, before) : x))),
-    });
-  };
 
   // Completed-area collapsed state per day (closed by default)
   const [doneOpenSet, setDoneOpenSet] = useState(() => new Set());
@@ -458,6 +331,8 @@ export default function App() {
     );
   };
 
+  const rowHandlers = { onToggle: toggle, onEdit: setEditingId, onRemove: remove, onToggleSub: toggleSubtask, onToggleStar: toggleStar };
+
   const todayLabel = (() => {
     const l = groupLabel(today, today);
     return l.secondary;
@@ -515,7 +390,7 @@ export default function App() {
               <span className="font-medium text-[var(--warn)]">{t("app.overdue")}</span>
               <span className="tabular text-[var(--muted)]">{overdue.length}</span>
               <span className="flex-1" aria-hidden="true"></span>
-              <button type="button" onClick={moveOverdueToToday} className="btn btn-ghost btn-sm">
+              <button type="button" onClick={() => moveOverdueToToday(overdue)} className="btn btn-ghost btn-sm">
                 {t("app.moveAll")}
               </button>
             </h2>
@@ -563,55 +438,16 @@ export default function App() {
           summary={<HistoryStats days={allPast.length} done={allStats.done} total={allStats.total} />}
           onClose={() => setHistoryOpen(false)}
         >
-          {pastMonths.length === 0 ? (
-            <HistoryEmpty />
-          ) : (
-            pastMonths.map((m) => {
-              const st = pastStats(m.days.map((d) => d.date));
-              return (
-                <div key={m.key}>
-                  <MonthHead label={m.label} meta={st.done + "/" + st.total} />
-                  {m.days.map(({ date }) => {
-                    const all = byDate.get(date) || [];
-                    const pending = all.filter((t) => !t.done);
-                    const completed = all.filter((t) => t.done);
-                    const label = groupLabel(date, today);
-                    return (
-                      <HistoryDay
-                        key={date}
-                        primary={label.primary}
-                        secondary={label.secondary}
-                        done={completed.length}
-                        total={all.length}
-                        open={openDays.has(date)}
-                        onToggle={() => toggleDay(date)}
-                      >
-                        {pending.length > 0 ? (
-                          <ul>
-                            {pending.map((t) => (
-                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} onToggleSub={toggleSubtask}
-                  onToggleStar={toggleStar} />
-                            ))}
-                          </ul>
-                        ) : null}
-                        {completed.length > 0 ? (
-                          <ul>
-                            {completed.map((t) => (
-                              <TaskRow key={t.id} task={t} onToggle={toggle} onEdit={setEditingId} onRemove={remove} onToggleSub={toggleSubtask}
-                  onToggleStar={toggleStar} />
-                            ))}
-                          </ul>
-                        ) : null}
-                      </HistoryDay>
-                    );
-                  })}
-                </div>
-              );
-            })
-          )}
-          <HistoryLoadMore
+          <HistoryList
+            months={pastMonths}
+            byDate={byDate}
+            today={today}
+            openDays={openDays}
+            onToggleDay={toggleDay}
+            pastStats={pastStats}
             hasMore={allPast.length > historyLimit}
             onLoadMore={() => setHistoryLimit((n) => n + HISTORY_PAGE_DAYS)}
+            handlers={rowHandlers}
           />
         </HistorySheet>
       ) : null}

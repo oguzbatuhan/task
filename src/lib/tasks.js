@@ -1,12 +1,9 @@
 import { uid } from "./id.js";
 import { mergeSubs, newSubs, normalizeSubs } from "./subs.js";
+import { TOMBSTONE_MS } from "./tombstone.js";
 
 export { normalizeSubs };
 export const STORAGE_KEY = "task-tasks-v1";
-
-// Deleted tasks are not removed right away; they are kept for a while with a "deleted" flag
-// so the deletion reaches other devices too. Flags older than 30 days are purged.
-const TOMBSTONE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export { uid };
 

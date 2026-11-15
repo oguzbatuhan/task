@@ -46,10 +46,20 @@ If you created the table under a different name, give its name with `VITE_SUPABA
 ### How sync works
 
 - Tasks and recurring-task rules are written to the shared `app_backups` table in Supabase as the `app = task` row (older backups have no rules, which is fine); the Daily and Flow rows are never touched. Sign-in is with Google.
-- Descriptions and subtasks are part of the backup. If the same task changed on two devices, the most recent change wins for its own fields (name, day, time, description, done), but **subtasks are merged one by one**: ticking a subtask on the phone and adding another on the laptop keeps both. Deleted tasks and removed subtasks stay marked as deleted for 30 days, so the deletion reaches other devices too.
+- Descriptions and subtasks are part of the backup. If the same task changed on two devices, the most recent change wins for its own fields (name, day, time, description, done), but **subtasks are merged one by one**: ticking a subtask on the phone and adding another on the laptop keeps both. Deleted tasks and removed subtasks stay marked as deleted for 90 days, so the deletion reaches other devices too.
 - A recurring task that a device creates by itself for today never overwrites edits another device already made to that day.
 - The upload is guarded: if another device saved while this one was merging, nothing is overwritten; the app downloads the newer copy, merges again and retries.
 - The Supabase library is only downloaded when cloud backup is in use.
 - Sync runs one second after a task changes and when you return to the tab.
 - The **Disconnect** button only ends the session in this browser. The backup in Supabase stays.
 - The session is persistent on the phone/browser and refreshes itself in the background. If the session drops, a **Reconnect** button appears at the top.
+
+## Code layout
+
+- `src/App.jsx` – page layout and derived views (weeks, overdue, history data).
+- `src/hooks/useTaskActions.js` – every change to tasks and recurring rules (add, toggle, move, reorder, rules) and the toast messages.
+- `src/hooks/useCloudSync.js`, `usePersist.js` – cloud backup and the local copy.
+- `src/components/HistoryList.jsx` – the body of the History sheet.
+- `src/lib/tombstone.js` – the single 90-day window for keeping deleted items so deletions reach other devices.
+
+`npm test` runs in the GitHub Actions workflow before every deploy.
